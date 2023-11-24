@@ -33,10 +33,8 @@ public class MainMenuKeyboardMarkup {
     private InlineKeyboardMarkup createInlineKeyboardMarkup(List<InlineKeyboardButton> rowInLine){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-
         rowsInLine.add(rowInLine);
         keyboardMarkup.setKeyboard(rowsInLine);
-
         return keyboardMarkup;
     }
 
