@@ -1,23 +1,28 @@
 package com.roman.telegramcafebot.service;
 
 import com.roman.telegramcafebot.config.BotConfig;
+import com.roman.telegramcafebot.utils.MainMenuKeyboardMarkup;
+import com.roman.telegramcafebot.utils.TableChoosingKeyboardMarkup;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @AllArgsConstructor
 public class TelegramBot extends TelegramLongPollingBot {
+
+    private long adminChatId;
     private final BotConfig botConfig;
+
+    private final MainMenuKeyboardMarkup mainMenuKeyboardMarkup = new MainMenuKeyboardMarkup();
+    private final TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup = new TableChoosingKeyboardMarkup();
 
     @Override
     public String getBotUsername() {
@@ -36,6 +41,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+
         if(update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
@@ -43,75 +49,32 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (messageText.equals("/start")) {
                 startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
             }
+            else-if(messageText.equals("/admin")){
+                adminChatId = chatId;
+                sendMessage(chatId, "Успешено");
+            }
         }
         else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
-            long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
 
             switch (callbackData) {
                 case "RESERVATION_BUTTON" -> {
                     String text = "Введите номер стола: ";
-                    SendMessage message = new SendMessage();
-                    message.setChatId(chatId);
-                    message.setText(text);
-
-                    InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-                    List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-                    List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-
-                    var tableButton_1 = new InlineKeyboardButton();
-                    tableButton_1.setText("1");
-                    tableButton_1.setCallbackData("TABLE_1");
-
-                    var tableButton_2 = new InlineKeyboardButton();
-                    tableButton_2.setText("2");
-                    tableButton_2.setCallbackData("TABLE_2");
-
-                    var tableButton_3 = new InlineKeyboardButton();
-                    tableButton_3.setText("3");
-                    tableButton_3.setCallbackData("TABLE_3");
-
-                    rowInLine.add(tableButton_1);
-                    rowInLine.add(tableButton_2);
-                    rowInLine.add(tableButton_3);
-
-                    rowsInLine.add(rowInLine);
-
-                    keyboardMarkup.setKeyboard(rowsInLine);
-                    message.setReplyMarkup(keyboardMarkup);
-
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                    sendMessage(chatId, text, tableChoosingKeyboardMarkup.getTableChoosingKeyboardMarkup());
                 }
                 case "BUY_BUTTON" -> {
                     String text = "buy";
-                    EditMessageText message = new EditMessageText();
-                    message.setChatId(chatId);
-                    message.setText(text);
-                    message.setMessageId((int) messageId);
 
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+
                 }
                 case "DELIVERY_BUTTON" -> {
                     String text = "delivery";
-                    EditMessageText message = new EditMessageText();
-                    message.setChatId(chatId);
-                    message.setText(text);
-                    message.setMessageId((int) messageId);
 
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                }
+                case "TABLE_1" -> {
+                    String text = "Вы выбрали стол 1, введите имя";
+                    sendMessage(chatId, text);
                 }
             }
         }
@@ -124,45 +87,22 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(Long chatId, String name) {
         String answer = "Hi, " + name + ", nice to meet you!";
-        SendMessage message = new SendMessage();
+        sendMessage(chatId, answer, mainMenuKeyboardMarkup.getMainMenuKeyboardMarkup());
+    }
 
-        message.setChatId(chatId);
-        message.setText(answer);
-
-        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-
-        var reservationButton = new InlineKeyboardButton();
-        reservationButton.setText("Бронь стола");
-        reservationButton.setCallbackData("RESERVATION_BUTTON");
-
-        var buyButton = new InlineKeyboardButton();
-        buyButton.setText("Купить");
-        buyButton.setCallbackData("BUY_BUTTON");
-
-        var deliveryButton = new InlineKeyboardButton();
-        deliveryButton.setText("Доставка");
-        deliveryButton.setCallbackData("DELIVERY_BUTTON");
-
-        rowInLine.add(reservationButton);
-        rowInLine.add(buyButton);
-        rowInLine.add(deliveryButton);
-
-        rowsInLine.add(rowInLine);
-
-        keyboardMarkup.setKeyboard(rowsInLine);
-        message.setReplyMarkup(keyboardMarkup);
-
+    private void sendMessage(Long chatId, String textToSend, InlineKeyboardMarkup keyboardMarkup) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(textToSend);
+        sendMessage.setReplyMarkup(keyboardMarkup);
         try {
-            execute(message);
+            execute(sendMessage);
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
-
     }
 
-    private void sendMessage(Long chatId, String textToSend){
+    private void sendMessage(Long chatId, String textToSend) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
         sendMessage.setText(textToSend);
@@ -172,4 +112,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             throw new RuntimeException(e);
         }
     }
+
+    private void forwardMessage(Long ToChatId, Long fromChatId, Long messageId){
+        ForwardMessage forwardMessage = new ForwardMessage();
+    }
+
 }
