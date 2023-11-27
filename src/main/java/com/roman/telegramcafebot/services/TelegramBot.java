@@ -1,6 +1,7 @@
-package com.roman.telegramcafebot.service;
+package com.roman.telegramcafebot.services;
 
 import com.roman.telegramcafebot.config.BotConfig;
+import com.roman.telegramcafebot.utils.FoodMenuKeyboardMarkup;
 import com.roman.telegramcafebot.utils.MainMenuKeyboardMarkup;
 import com.roman.telegramcafebot.utils.Reservation;
 import com.roman.telegramcafebot.utils.TableChoosingKeyboardMarkup;
@@ -31,6 +32,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
 
     private final MainMenuKeyboardMarkup mainMenuKeyboardMarkup = new MainMenuKeyboardMarkup();
+    private final FoodMenuKeyboardMarkup foodMenuKeyboardMarkup = new FoodMenuKeyboardMarkup();
     private final TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup = new TableChoosingKeyboardMarkup();
 
     @Override
@@ -88,9 +90,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     String text = "Введите номер стола: ";
                     sendMessage(chatId, text, tableChoosingKeyboardMarkup.getTableChoosingKeyboardMarkup());
                 }
-                case "BUY_BUTTON" -> {
-                    String text = "buy";
-                }
+                case "BUY_BUTTON" ->
+                    sendMessage(chatId, "Menu", foodMenuKeyboardMarkup.getFoodMenuKeyboardMarkup());
+
                 case "DELIVERY_BUTTON" -> {
                     String text = "delivery";
                 }
