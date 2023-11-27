@@ -1,10 +1,9 @@
 package com.roman.telegramcafebot.services;
 
 import com.roman.telegramcafebot.config.BotConfig;
-import com.roman.telegramcafebot.utils.FoodMenuKeyboardMarkup;
-import com.roman.telegramcafebot.utils.MainMenuKeyboardMarkup;
-import com.roman.telegramcafebot.utils.Reservation;
-import com.roman.telegramcafebot.utils.TableChoosingKeyboardMarkup;
+import com.roman.telegramcafebot.repositories.AdminKeyRepository;
+import com.roman.telegramcafebot.repositories.MenuItemRepository;
+import com.roman.telegramcafebot.utils.*;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,19 +20,34 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class TelegramBot extends TelegramLongPollingBot {
+
+    private MainMenuKeyboardMarkup mainMenuKeyboardMarkup;
+    private FoodMenuKeyboardMarkup foodMenuKeyboardMarkup;
+    private TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup;
+
+    private AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup;
+
+    private AdminKeyRepository adminKeyRepository;
+
+    private MenuItemRepository menuItemRepository;
+    private final BotConfig botConfig;
     private Reservation reservation;
     @Autowired
-    public TelegramBot(Reservation reservation, BotConfig botConfig){
+    public TelegramBot(Reservation reservation, BotConfig botConfig, MainMenuKeyboardMarkup mainMenuKeyboardMarkup,
+                       FoodMenuKeyboardMarkup foodMenuKeyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
+                       AdminKeyRepository adminKeyRepository, MenuItemRepository menuItemRepository,
+                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup){
         this.reservation = reservation;
         this.botConfig = botConfig;
+        this.mainMenuKeyboardMarkup = mainMenuKeyboardMarkup;
+        this.foodMenuKeyboardMarkup = foodMenuKeyboardMarkup;
+        this.tableChoosingKeyboardMarkup = tableChoosingKeyboardMarkup;
+        this.adminKeyRepository = adminKeyRepository;
+        this.menuItemRepository = menuItemRepository;
+        this.adminMenuKeyBoardMarkup = adminMenuKeyBoardMarkup;
     }
 
-    private long coworkerChatId = 12;
-    private final BotConfig botConfig;
-
-    private final MainMenuKeyboardMarkup mainMenuKeyboardMarkup = new MainMenuKeyboardMarkup();
-    private final FoodMenuKeyboardMarkup foodMenuKeyboardMarkup = new FoodMenuKeyboardMarkup();
-    private final TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup = new TableChoosingKeyboardMarkup();
+    private long coworkerChatId = 12; //TODO
 
     @Override
     public String getBotUsername() {
@@ -63,7 +77,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "/admin" -> {
                     coworkerChatId = chatId;
-                    sendMessage(chatId, "Успешено");
+                    sendMessage(chatId, "Введите ключ");
                 }
             }
             if(messageText.startsWith("/reservation")) {
@@ -78,6 +92,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                         "сотрудник подтвердит бронь";
                 sendMessage(chatId, text);
                 sendMessage(coworkerChatId, reservation.toString(), createInlineKeyboardMarkup("Подтвердить бронь стола", "RESERVATION_CONFIRMED"));
+            } else if (messageText.startsWith("/key")) {
+                String key = messageText.substring(5);
+                String keyFromDB = adminKeyRepository.findById(1).orElse(null).getKey();
+                if(key.equals(keyFromDB)){
+                    sendMessage(chatId, "Ключ активирован", adminMenuKeyBoardMarkup.getAdminKeyboardMarkup());
+                }
             }
         }
         else if (update.hasCallbackQuery()) {
