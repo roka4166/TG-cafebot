@@ -48,6 +48,10 @@ public class FoodMenuKeyboardMarkup {
         bruschettaButton.setText("bruschetta");
         bruschettaButton.setCallbackData("BRUSCHETTA_BUTTON");
 
+        InlineKeyboardButton drinksButton = new InlineKeyboardButton();
+        breakfastButton.setText("Drinks");
+        breakfastButton.setCallbackData("DRINKS_BUTTON");
+
         rowInLine.add(breakfastButton);
         rowInLine.add(croissantButton);
         rowInLine.add(RomanPizzaButton);
@@ -56,7 +60,7 @@ public class FoodMenuKeyboardMarkup {
         rowInLine.add(soupButton);
         rowInLine.add(saladButton);
         rowInLine.add(sandwichButton);
-
+        rowInLine.add(drinksButton);
 
         return rowInLine;
     }

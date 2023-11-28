@@ -32,11 +32,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     private MenuItemRepository menuItemRepository;
     private final BotConfig botConfig;
     private Reservation reservation;
+
+    private MenuItem menuItem;
     @Autowired
     public TelegramBot(Reservation reservation, BotConfig botConfig, MainMenuKeyboardMarkup mainMenuKeyboardMarkup,
                        FoodMenuKeyboardMarkup foodMenuKeyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
                        AdminKeyRepository adminKeyRepository, MenuItemRepository menuItemRepository,
-                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup){
+                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup, MenuItem menuItem){
         this.reservation = reservation;
         this.botConfig = botConfig;
         this.mainMenuKeyboardMarkup = mainMenuKeyboardMarkup;
@@ -45,6 +47,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.adminKeyRepository = adminKeyRepository;
         this.menuItemRepository = menuItemRepository;
         this.adminMenuKeyBoardMarkup = adminMenuKeyBoardMarkup;
+        this.menuItem = menuItem;
     }
 
     private long coworkerChatId = 12; //TODO
@@ -99,6 +102,27 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, "Ключ активирован", adminMenuKeyBoardMarkup.getAdminKeyboardMarkup());
                 }
             }
+            else if (messageText.startsWith("/newitem")){
+                String[] menuItemInfo = messageText.substring(9).split(" ");
+                MenuItem itemToAdd = new MenuItem();
+                itemToAdd.setName(menuItemInfo[0]);
+                itemToAdd.setPrice(Integer.valueOf(menuItemInfo[1]));
+                itemToAdd.setType(menuItemInfo[2]);
+                menuItemRepository.save(itemToAdd);
+            }
+            else if (messageText.startsWith("/deleteitem")){
+                String itemName = messageText.substring(12);
+                MenuItem itemForRemoval = menuItemRepository.findByName(itemName);
+                menuItemRepository.delete(itemForRemoval);
+            }
+            else if (messageText.startsWith("/updateitem")){
+                String[] menuItemInfo = messageText.substring(12).split(" ");
+                MenuItem itemForUpdate = menuItemRepository.findByName(menuItemInfo[0]);
+                itemForUpdate.setName(menuItemInfo[0]);
+                itemForUpdate.setPrice(Integer.valueOf(menuItemInfo[1]));
+                itemForUpdate.setType(menuItemInfo[2]);
+                menuItemRepository.save(itemForUpdate);
+            }
         }
         else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
@@ -136,6 +160,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                     String text = "Бронь стола подтверждена";
                     sendMessage(chatId, text);
                 }
+                case "CREATE_BUTTON" -> {
+                    String text = "Введите имя, цену и тип нового продукта, по типу /newitem кофе 70 напиток ";
+                    sendMessage(chatId, text);
+                }
+
             }
         }
     }

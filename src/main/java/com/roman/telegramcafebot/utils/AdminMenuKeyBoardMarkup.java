@@ -18,7 +18,7 @@ public class AdminMenuKeyBoardMarkup {
 
         InlineKeyboardButton updateButton = new InlineKeyboardButton();
         updateButton.setText("Изменить товар");
-        updateButton.setCallbackData("UPPDATE_BUTTON");
+        updateButton.setCallbackData("UPDATE_BUTTON");
 
         InlineKeyboardButton deleteButton = new InlineKeyboardButton();
         deleteButton.setText("Удалить товар");

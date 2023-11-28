@@ -2,9 +2,11 @@ package com.roman.telegramcafebot.utils;
 
 
 import jakarta.persistence.*;
+import org.springframework.stereotype.Component;
 
 @Entity
-@Table(name = "MenuItem")
+@Table(name = "menu_item")
+@Component
 public class MenuItem {
 
     @Id
