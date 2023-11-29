@@ -1,6 +1,9 @@
 package com.roman.telegramcafebot.services;
 
 import com.roman.telegramcafebot.config.BotConfig;
+import com.roman.telegramcafebot.models.FoodMenu;
+import com.roman.telegramcafebot.models.MenuItem;
+import com.roman.telegramcafebot.models.Reservation;
 import com.roman.telegramcafebot.repositories.AdminKeyRepository;
 import com.roman.telegramcafebot.repositories.MenuItemRepository;
 import com.roman.telegramcafebot.utils.*;
@@ -16,6 +19,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @AllArgsConstructor
@@ -34,11 +38,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Reservation reservation;
 
     private MenuItem menuItem;
+
+    private FoodMenu foodMenu;
     @Autowired
     public TelegramBot(Reservation reservation, BotConfig botConfig, MainMenuKeyboardMarkup mainMenuKeyboardMarkup,
                        FoodMenuKeyboardMarkup foodMenuKeyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
                        AdminKeyRepository adminKeyRepository, MenuItemRepository menuItemRepository,
-                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup, MenuItem menuItem){
+                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup, MenuItem menuItem, FoodMenu foodMenu){
         this.reservation = reservation;
         this.botConfig = botConfig;
         this.mainMenuKeyboardMarkup = mainMenuKeyboardMarkup;
@@ -48,6 +54,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.menuItemRepository = menuItemRepository;
         this.adminMenuKeyBoardMarkup = adminMenuKeyBoardMarkup;
         this.menuItem = menuItem;
+        this.foodMenu = foodMenu;
     }
 
     private long coworkerChatId = 12; //TODO
@@ -97,7 +104,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(coworkerChatId, reservation.toString(), createInlineKeyboardMarkup("Подтвердить бронь стола", "RESERVATION_CONFIRMED"));
             } else if (messageText.startsWith("/key")) {
                 String key = messageText.substring(5);
-                String keyFromDB = adminKeyRepository.findById(1).orElse(null).getKey();
+                String keyFromDB = Objects.requireNonNull(adminKeyRepository.findById(1).orElse(null)).getKey();
                 if(key.equals(keyFromDB)){
                     sendMessage(chatId, "Ключ активирован", adminMenuKeyBoardMarkup.getAdminKeyboardMarkup());
                 }
@@ -138,7 +145,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, "Menu", foodMenuKeyboardMarkup.getFoodMenuKeyboardMarkup());
 
                 case "DELIVERY_BUTTON" -> {
-                    String text = "delivery";
+                    sendMessage(chatId, "Menu", foodMenuKeyboardMarkup.getFoodMenuKeyboardMarkup());
                 }
                 case "TABLE_1" -> {
                     reservation.setTable(1);
@@ -163,6 +170,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "CREATE_BUTTON" -> {
                     String text = "Введите имя, цену и тип нового продукта, по типу /newitem кофе 70 напиток ";
                     sendMessage(chatId, text);
+                }
+                case "DRINKS_BUTTON" -> {
+                    String text = "drinks";
+                    List<MenuItem> allDrinks = menuItemRepository.findAllByType("напиток");
+                    sendMessage(chatId, text, foodMenu.getFoodMenuKeyboardMarkup(allDrinks));
                 }
 
             }

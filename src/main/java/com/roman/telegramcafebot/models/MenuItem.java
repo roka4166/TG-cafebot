@@ -1,4 +1,4 @@
-package com.roman.telegramcafebot.utils;
+package com.roman.telegramcafebot.models;
 
 
 import jakarta.persistence.*;

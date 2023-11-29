@@ -1,5 +1,6 @@
 package com.roman.telegramcafebot.utils;
 
+import com.roman.telegramcafebot.models.ButtonNotDB;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -9,71 +10,54 @@ import java.util.List;
 @Component
 public class FoodMenuKeyboardMarkup {
 
-    private List<InlineKeyboardButton> createRowInLine (){
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+    private List<ButtonNotDB> createAllButtons (){
+        List<ButtonNotDB> allButtonNotDBS = new ArrayList<>();
 
-        InlineKeyboardButton breakfastButton = new InlineKeyboardButton();
-        breakfastButton.setText("Breakfasts");
-        breakfastButton.setCallbackData("BREAKFAST_BUTTON");
+        ButtonNotDB breakfastButtonNotDB = new ButtonNotDB("Breakfast", "BREAKFAST_BUTTON");
+        ButtonNotDB croissantButtonNotDB = new ButtonNotDB("Croissant", "CROISSANT_BUTTON");
+        ButtonNotDB romanPizzaButtonNotDB = new ButtonNotDB("RomanPizza", "ROMANPIZZA_BUTTON");
+        ButtonNotDB hotFoodButtonNotDB = new ButtonNotDB("Hot food", "HOTFOOD_BUTTON");
+        ButtonNotDB pieButtonNotDB = new ButtonNotDB("Pies *chudu*", "PIE_BUTTON");
+        ButtonNotDB soupButtonNotDB = new ButtonNotDB("soup", "SOUP_BUTTON");
+        ButtonNotDB saladButtonNotDB = new ButtonNotDB("salad", "SALAD_BUTTON");
+        ButtonNotDB sandwichButtonNotDB = new ButtonNotDB("sandwich", "SANDWICH_BUTTON");
+        ButtonNotDB bruschettaButtonNotDB = new ButtonNotDB("bruschetta", "BRUSCHETTA_BUTTON");
+        ButtonNotDB drinksButtonNotDB = new ButtonNotDB("Drinks", "DRINKS_BUTTON");
+        ButtonNotDB breadButtonNotDB = new ButtonNotDB("Bread", "BREAD_BUTTON");
+        ButtonNotDB desertButtonNotDB = new ButtonNotDB("Desert", "DESERT_BUTTON");
 
-        InlineKeyboardButton croissantButton = new InlineKeyboardButton();
-        croissantButton.setText("Croissant");
-        croissantButton.setCallbackData("CROISSANT_BUTTON");
+        allButtonNotDBS.add(breakfastButtonNotDB);
+        allButtonNotDBS.add(croissantButtonNotDB);
+        allButtonNotDBS.add(romanPizzaButtonNotDB);
+        allButtonNotDBS.add(hotFoodButtonNotDB);
+        allButtonNotDBS.add(pieButtonNotDB);
+        allButtonNotDBS.add(soupButtonNotDB);
+        allButtonNotDBS.add(saladButtonNotDB);
+        allButtonNotDBS.add(sandwichButtonNotDB);
+        allButtonNotDBS.add(drinksButtonNotDB);
+        allButtonNotDBS.add(breadButtonNotDB);
+        allButtonNotDBS.add(desertButtonNotDB);
 
-        InlineKeyboardButton RomanPizzaButton = new InlineKeyboardButton();
-        RomanPizzaButton.setText("RomanPizza");
-        RomanPizzaButton.setCallbackData("ROMANPIZZA_BUTTON");
-
-        InlineKeyboardButton HotFoodButton = new InlineKeyboardButton();
-        HotFoodButton.setText("Hot food");
-        HotFoodButton.setCallbackData("HOTFOOD_BUTTON");
-
-        InlineKeyboardButton pieButton = new InlineKeyboardButton();
-        pieButton.setText("Pies *chudu*");
-        pieButton.setCallbackData("PIE_BUTTON");
-
-        InlineKeyboardButton soupButton = new InlineKeyboardButton();
-        soupButton.setText("soup");
-        soupButton.setCallbackData("SOUP_BUTTON");
-
-        InlineKeyboardButton saladButton = new InlineKeyboardButton();
-        saladButton.setText("salad");
-        saladButton.setCallbackData("SALAD_BUTTON");
-
-        InlineKeyboardButton sandwichButton = new InlineKeyboardButton();
-        sandwichButton.setText("sandwich");
-        sandwichButton.setCallbackData("SANDWICH_BUTTON");
-
-        InlineKeyboardButton bruschettaButton = new InlineKeyboardButton();
-        bruschettaButton.setText("bruschetta");
-        bruschettaButton.setCallbackData("BRUSCHETTA_BUTTON");
-
-        InlineKeyboardButton drinksButton = new InlineKeyboardButton();
-        breakfastButton.setText("Drinks");
-        breakfastButton.setCallbackData("DRINKS_BUTTON");
-
-        rowInLine.add(breakfastButton);
-        rowInLine.add(croissantButton);
-        rowInLine.add(RomanPizzaButton);
-        rowInLine.add(HotFoodButton);
-        rowInLine.add(pieButton);
-        rowInLine.add(soupButton);
-        rowInLine.add(saladButton);
-        rowInLine.add(sandwichButton);
-        rowInLine.add(drinksButton);
-
-        return rowInLine;
+        return allButtonNotDBS;
     }
 
-    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<InlineKeyboardButton> allButtons){
+    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<ButtonNotDB> allButtonNotDBS){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        int buttonsPerRow = 3;
 
-        for (int i = 0; i < allButtons.size(); i += buttonsPerRow) {
-            int endIndex = Math.min(i + buttonsPerRow, allButtons.size());
-            List<InlineKeyboardButton> row = allButtons.subList(i, endIndex);
-            rowsInLine.add(new ArrayList<>(row));
+        int batchSize = 3;
+        int totalButtons = allButtonNotDBS.size();
+        int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
+
+        for (int j = 0; j < numberOfIterations; j++) {
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
+                InlineKeyboardButton button = new InlineKeyboardButton();
+                button.setText(allButtonNotDBS.get(i).getText());
+                button.setCallbackData(allButtonNotDBS.get(i).getCallbackData());
+                row.add(button);
+            }
+            rowsInLine.add(row);
         }
 
         keyboardMarkup.setKeyboard(rowsInLine);
@@ -81,6 +65,6 @@ public class FoodMenuKeyboardMarkup {
     }
 
     public InlineKeyboardMarkup getFoodMenuKeyboardMarkup(){
-        return createInlineKeyboardMarkup(createRowInLine());
+        return createInlineKeyboardMarkup(createAllButtons());
     }
 }
