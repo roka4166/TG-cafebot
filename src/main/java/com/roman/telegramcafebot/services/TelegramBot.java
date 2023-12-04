@@ -1,11 +1,10 @@
 package com.roman.telegramcafebot.services;
 
 import com.roman.telegramcafebot.config.BotConfig;
-import com.roman.telegramcafebot.models.FoodMenu;
-import com.roman.telegramcafebot.models.MenuItem;
+import com.roman.telegramcafebot.models.Button;
 import com.roman.telegramcafebot.models.Reservation;
 import com.roman.telegramcafebot.repositories.AdminKeyRepository;
-import com.roman.telegramcafebot.repositories.MenuItemRepository;
+import com.roman.telegramcafebot.repositories.ButtonRepository;
 import com.roman.telegramcafebot.utils.*;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,36 +24,24 @@ import java.util.Objects;
 @AllArgsConstructor
 public class TelegramBot extends TelegramLongPollingBot {
 
-    private MainMenuKeyboardMarkup mainMenuKeyboardMarkup;
-    private FoodMenuKeyboardMarkup foodMenuKeyboardMarkup;
+    private KeyboardMarkup keyboardMarkup;
     private TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup;
 
-    private AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup;
-
     private AdminKeyRepository adminKeyRepository;
-
-    private MenuItemRepository menuItemRepository;
     private final BotConfig botConfig;
     private Reservation reservation;
 
-    private MenuItem menuItem;
+    private ButtonRepository buttonRepository;
 
-    private FoodMenu foodMenu;
     @Autowired
-    public TelegramBot(Reservation reservation, BotConfig botConfig, MainMenuKeyboardMarkup mainMenuKeyboardMarkup,
-                       FoodMenuKeyboardMarkup foodMenuKeyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
-                       AdminKeyRepository adminKeyRepository, MenuItemRepository menuItemRepository,
-                       AdminMenuKeyBoardMarkup adminMenuKeyBoardMarkup, MenuItem menuItem, FoodMenu foodMenu){
+    public TelegramBot(Reservation reservation, BotConfig botConfig, KeyboardMarkup keyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
+                       AdminKeyRepository adminKeyRepository, ButtonRepository buttonRepository){
         this.reservation = reservation;
         this.botConfig = botConfig;
-        this.mainMenuKeyboardMarkup = mainMenuKeyboardMarkup;
-        this.foodMenuKeyboardMarkup = foodMenuKeyboardMarkup;
+        this.keyboardMarkup = keyboardMarkup;
         this.tableChoosingKeyboardMarkup = tableChoosingKeyboardMarkup;
         this.adminKeyRepository = adminKeyRepository;
-        this.menuItemRepository = menuItemRepository;
-        this.adminMenuKeyBoardMarkup = adminMenuKeyBoardMarkup;
-        this.menuItem = menuItem;
-        this.foodMenu = foodMenu;
+        this.buttonRepository = buttonRepository;
     }
 
     private long coworkerChatId = 12; //TODO
@@ -101,34 +88,35 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String text = "Запрос на бронь отправлен нашему сотруднику, вы получите подтверждение как только " +
                         "сотрудник подтвердит бронь";
                 sendMessage(chatId, text);
-                sendMessage(coworkerChatId, reservation.toString(), createInlineKeyboardMarkup("Подтвердить бронь стола", "RESERVATION_CONFIRMED"));
+                sendMessage(coworkerChatId, reservation.toString(), createOneButton("Подтвердить бронь стола", "RESERVATION_CONFIRMED"));
             } else if (messageText.startsWith("/key")) {
                 String key = messageText.substring(5);
                 String keyFromDB = Objects.requireNonNull(adminKeyRepository.findById(1).orElse(null)).getKey();
                 if(key.equals(keyFromDB)){
-                    sendMessage(chatId, "Ключ активирован", adminMenuKeyBoardMarkup.getAdminKeyboardMarkup());
+                    sendMessage(chatId, "Ключ активирован", keyboardMarkup.getKeyboardMarkup("adminmenu"));
                 }
             }
             else if (messageText.startsWith("/newitem")){
                 String[] menuItemInfo = messageText.substring(9).split(" ");
-                MenuItem itemToAdd = new MenuItem();
-                itemToAdd.setName(menuItemInfo[0]);
-                itemToAdd.setPrice(Integer.valueOf(menuItemInfo[1]));
-                itemToAdd.setType(menuItemInfo[2]);
-                menuItemRepository.save(itemToAdd);
+                Button buttonToAdd = new Button();
+                buttonToAdd.setName(menuItemInfo[0] + " " + menuItemInfo[1]);
+                buttonToAdd.setBelongsToMenu(menuItemInfo[2]+ "меню");
+                buttonToAdd.setCallbackData(menuItemInfo[0].toUpperCase()+ "_BUTTON");
+                buttonRepository.save(buttonToAdd);
+
             }
             else if (messageText.startsWith("/deleteitem")){
                 String itemName = messageText.substring(12);
-                MenuItem itemForRemoval = menuItemRepository.findByName(itemName);
-                menuItemRepository.delete(itemForRemoval);
+                Button itemForRemoval = buttonRepository.findButtonByNameStartingWith(itemName);
+                buttonRepository.delete(itemForRemoval);
             }
             else if (messageText.startsWith("/updateitem")){
                 String[] menuItemInfo = messageText.substring(12).split(" ");
-                MenuItem itemForUpdate = menuItemRepository.findByName(menuItemInfo[0]);
-                itemForUpdate.setName(menuItemInfo[0]);
-                itemForUpdate.setPrice(Integer.valueOf(menuItemInfo[1]));
-                itemForUpdate.setType(menuItemInfo[2]);
-                menuItemRepository.save(itemForUpdate);
+                Button itemForUpdate = buttonRepository.findButtonByNameStartingWith(menuItemInfo[0]);
+                itemForUpdate.setName(menuItemInfo[0] + " " + menuItemInfo[1]);
+                itemForUpdate.setBelongsToMenu(menuItemInfo[2] + "меню");
+                itemForUpdate.setCallbackData(menuItemInfo[0].toUpperCase() + " _BUTTON");
+                buttonRepository.save(itemForUpdate);
             }
         }
         else if (update.hasCallbackQuery()) {
@@ -142,10 +130,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, text, tableChoosingKeyboardMarkup.getTableChoosingKeyboardMarkup());
                 }
                 case "BUY_BUTTON" ->
-                    sendMessage(chatId, "Menu", foodMenuKeyboardMarkup.getFoodMenuKeyboardMarkup());
+                    sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
 
                 case "DELIVERY_BUTTON" -> {
-                    sendMessage(chatId, "Menu", foodMenuKeyboardMarkup.getFoodMenuKeyboardMarkup());
+                    sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
                 }
                 case "TABLE_1" -> {
                     reservation.setTable(1);
@@ -173,10 +161,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "DRINKS_BUTTON" -> {
                     String text = "drinks";
-                    List<MenuItem> allDrinks = menuItemRepository.findAllByType("напиток");
-                    sendMessage(chatId, text, foodMenu.getFoodMenuKeyboardMarkup(allDrinks));
+                    sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup("напитокменю"));
                 }
-
             }
         }
     }
@@ -188,7 +174,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(Long chatId, String name) {
         String answer = "Hi, " + name + ", nice to meet you!";
-        sendMessage(chatId, answer, mainMenuKeyboardMarkup.getMainMenuKeyboardMarkup());
+        sendMessage(chatId, answer, keyboardMarkup.getKeyboardMarkup("mainmenu"));
     }
 
     private void sendMessage(Long chatId, String textToSend, InlineKeyboardMarkup keyboardMarkup) {
@@ -214,7 +200,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private InlineKeyboardMarkup createInlineKeyboardMarkup(String text, String callbackDATA){
+    private InlineKeyboardMarkup createOneButton(String text, String callbackDATA){
         InlineKeyboardButton button = new InlineKeyboardButton();
         button.setText(text);
         button.setCallbackData(callbackDATA);

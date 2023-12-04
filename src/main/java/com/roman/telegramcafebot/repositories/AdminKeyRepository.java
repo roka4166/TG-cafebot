@@ -1,6 +1,6 @@
 package com.roman.telegramcafebot.repositories;
 
-import com.roman.telegramcafebot.utils.AdminKey;
+import com.roman.telegramcafebot.models.AdminKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

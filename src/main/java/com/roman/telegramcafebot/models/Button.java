@@ -1,7 +1,11 @@
 package com.roman.telegramcafebot.models;
 
 import jakarta.persistence.*;
+import org.springframework.stereotype.Component;
 
+@Entity
+@Component
+@Table(name = "button")
 public class Button {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -9,28 +13,27 @@ public class Button {
     private int id;
     @Column(name = "name")
     private String name;
-    @Column(name = "belongsToMenu")
+    @Column(name = "belongs_to_menu")
     private String belongsToMenu;
+    @Column(name = "callbackdata")
+    private String callbackData;
 
-    @ManyToOne
-    @JoinColumn(name = "menu", referencedColumnName = "id")
-    private Menu menu;
-
-    public Button(int id, String name, String belongsToMenu) {
+    public Button(int id, String name, String belongsToMenu, String callbackData) {
         this.id = id;
         this.name = name;
         this.belongsToMenu = belongsToMenu;
+        this.callbackData = callbackData;
     }
 
     public Button() {
     }
 
-    public Menu getMenu() {
-        return menu;
+    public String getCallbackData() {
+        return callbackData;
     }
 
-    public void setMenu(Menu menu) {
-        this.menu = menu;
+    public void setCallbackData(String callbackData) {
+        this.callbackData = callbackData;
     }
 
     public int getId() {

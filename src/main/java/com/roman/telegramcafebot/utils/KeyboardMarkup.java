@@ -1,5 +1,8 @@
-package com.roman.telegramcafebot.models;
+package com.roman.telegramcafebot.utils;
 
+import com.roman.telegramcafebot.models.Button;
+import com.roman.telegramcafebot.repositories.ButtonRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -7,32 +10,32 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.util.ArrayList;
 import java.util.List;
 @Component
-public class FoodMenu {
+public class KeyboardMarkup {
 
-    private List<ButtonNotDB> createAllButtons (List<MenuItem> menuItems){
-        List<ButtonNotDB> allButtonNotDBS = new ArrayList<>();
-
-        for (MenuItem menuItem : menuItems) {
-            String itemName = menuItem.getName();
-            allButtonNotDBS.add(new ButtonNotDB(itemName, itemName.toUpperCase()));
-        }
-
-        return allButtonNotDBS;
+    private ButtonRepository buttonRepository;
+    @Autowired
+    public KeyboardMarkup(ButtonRepository buttonRepository) {
+        this.buttonRepository = buttonRepository;
     }
-    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<ButtonNotDB> allButtonNotDBS){
+
+    private List<Button> getButtons (String typeOfMenu){
+        return buttonRepository.findAllByBelongsToMenu(typeOfMenu);
+    }
+
+    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
         int batchSize = 3;
-        int totalButtons = allButtonNotDBS.size();
+        int totalButtons = buttons.size();
         int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
 
         for (int j = 0; j < numberOfIterations; j++) {
             List<InlineKeyboardButton> row = new ArrayList<>();
             for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
-                button.setText(allButtonNotDBS.get(i).getText());
-                button.setCallbackData(allButtonNotDBS.get(i).getCallbackData());
+                button.setText(buttons.get(i).getName());
+                button.setCallbackData(buttons.get(i).getCallbackData());
                 row.add(button);
             }
             rowsInLine.add(row);
@@ -42,7 +45,7 @@ public class FoodMenu {
         return keyboardMarkup;
     }
 
-    public InlineKeyboardMarkup getFoodMenuKeyboardMarkup(List<MenuItem> menuItems){
-        return createInlineKeyboardMarkup(createAllButtons(menuItems));
+    public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu){
+        return createInlineKeyboardMarkup(getButtons(typeOfMenu));
     }
 }
