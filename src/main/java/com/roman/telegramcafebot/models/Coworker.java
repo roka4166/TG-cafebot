@@ -11,7 +11,7 @@ public class Coworker {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private int id;
-    @Column(name = "chatId")
+    @Column(name = "chat_id")
     private String chatId;
 
     public Coworker() {

@@ -2,9 +2,11 @@ package com.roman.telegramcafebot.services;
 
 import com.roman.telegramcafebot.config.BotConfig;
 import com.roman.telegramcafebot.models.Button;
+import com.roman.telegramcafebot.models.Coworker;
 import com.roman.telegramcafebot.models.Reservation;
 import com.roman.telegramcafebot.repositories.AdminKeyRepository;
 import com.roman.telegramcafebot.repositories.ButtonRepository;
+import com.roman.telegramcafebot.repositories.CoworkerRepository;
 import com.roman.telegramcafebot.utils.*;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,17 +33,22 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
     private Reservation reservation;
 
+    private CoworkerRepository coworkerRepository;
+
     private ButtonRepository buttonRepository;
+
+    Order order = new Order(); //TODO
 
     @Autowired
     public TelegramBot(Reservation reservation, BotConfig botConfig, KeyboardMarkup keyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
-                       AdminKeyRepository adminKeyRepository, ButtonRepository buttonRepository){
+                       AdminKeyRepository adminKeyRepository, ButtonRepository buttonRepository, CoworkerRepository coworkerRepository){
         this.reservation = reservation;
         this.botConfig = botConfig;
         this.keyboardMarkup = keyboardMarkup;
         this.tableChoosingKeyboardMarkup = tableChoosingKeyboardMarkup;
         this.adminKeyRepository = adminKeyRepository;
         this.buttonRepository = buttonRepository;
+        this.coworkerRepository = coworkerRepository;
     }
 
     private long coworkerChatId = 12; //TODO
@@ -93,6 +100,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String key = messageText.substring(5);
                 String keyFromDB = Objects.requireNonNull(adminKeyRepository.findById(1).orElse(null)).getKey();
                 if(key.equals(keyFromDB)){
+                    Coworker coworker = new Coworker();
+                    coworker.setChatId(String.valueOf(chatId));
+                    coworkerRepository.save(coworker);
                     sendMessage(chatId, "Ключ активирован", keyboardMarkup.getKeyboardMarkup("adminmenu"));
                 }
             }
@@ -118,10 +128,22 @@ public class TelegramBot extends TelegramLongPollingBot {
                 itemForUpdate.setCallbackData(menuItemInfo[0].toUpperCase() + " _BUTTON");
                 buttonRepository.save(itemForUpdate);
             }
+            else if (messageText.equals("/done")){
+                Long coworkerChatId = Long.valueOf(coworkerRepository.findById(1).orElse(null).getChatId());
+
+                sendMessage(coworkerChatId, order.toString());
+            }
         }
         else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
+
+            if(callbackData.startsWith("ADDITEM_BUTTON")){
+                String[] itemInfo = callbackData.substring(14).split(" ");
+                order.addToTotal(Integer.parseInt(itemInfo[1]));
+                order.getAddedItems().add(itemInfo[0]);
+                sendMessage(chatId, "Добавлено в корзину", keyboardMarkup.getKeyboardMarkup("foodmenu"));
+            }
 
             switch (callbackData) {
                 case "RESERVATION_BUTTON" -> {
@@ -162,6 +184,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "DRINKS_BUTTON" -> {
                     String text = "drinks";
                     sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup("напитокменю"));
+                }
+                case "CROISSANT_BUTTON" -> {
+                    sendMessage(chatId, "Croisaants", keyboardMarkup.getKeyboardMarkup("croissantmenu"));
+                }
+                case "FINAL_BUTTON" -> {
+
                 }
             }
         }
