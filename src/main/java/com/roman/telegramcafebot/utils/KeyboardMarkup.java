@@ -21,6 +21,15 @@ public class KeyboardMarkup {
     private List<Button> getButtons (String typeOfMenu){
         return buttonRepository.findAllByBelongsToMenu(typeOfMenu);
     }
+    private List<Button> getButtons (String typeOfMenu, String itemName, String itemPrice){
+        List<Button> buttons = buttonRepository.findAllByBelongsToMenu(typeOfMenu);
+        for(Button button : buttons){
+            if (button.getCallbackData().equals("CONFIRMATION_BUTTON")){
+                button.setCallbackData("CONFIRMATION_BUTTON"+itemName+" "+itemPrice);
+            }
+        }
+        return buttons;
+    }
 
     private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
@@ -47,5 +56,8 @@ public class KeyboardMarkup {
 
     public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu){
         return createInlineKeyboardMarkup(getButtons(typeOfMenu));
+    }
+    public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu, String itemName, String itemPrice){
+        return createInlineKeyboardMarkup(getButtons(typeOfMenu, itemName, itemPrice));
     }
 }

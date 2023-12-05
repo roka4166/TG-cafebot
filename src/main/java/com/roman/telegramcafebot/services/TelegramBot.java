@@ -3,10 +3,12 @@ package com.roman.telegramcafebot.services;
 import com.roman.telegramcafebot.config.BotConfig;
 import com.roman.telegramcafebot.models.Button;
 import com.roman.telegramcafebot.models.Coworker;
+import com.roman.telegramcafebot.models.Order;
 import com.roman.telegramcafebot.models.Reservation;
 import com.roman.telegramcafebot.repositories.AdminKeyRepository;
 import com.roman.telegramcafebot.repositories.ButtonRepository;
 import com.roman.telegramcafebot.repositories.CoworkerRepository;
+import com.roman.telegramcafebot.repositories.OrderRepository;
 import com.roman.telegramcafebot.utils.*;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +39,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private ButtonRepository buttonRepository;
 
-    Order order = new Order(); //TODO
-
+    private OrderRepository orderRepository;
     @Autowired
-    public TelegramBot(Reservation reservation, BotConfig botConfig, KeyboardMarkup keyboardMarkup, TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
-                       AdminKeyRepository adminKeyRepository, ButtonRepository buttonRepository, CoworkerRepository coworkerRepository){
+    public TelegramBot(Reservation reservation, BotConfig botConfig, KeyboardMarkup keyboardMarkup,
+                       TableChoosingKeyboardMarkup tableChoosingKeyboardMarkup,
+                       AdminKeyRepository adminKeyRepository, ButtonRepository buttonRepository,
+                       CoworkerRepository coworkerRepository, OrderRepository orderRepository){
         this.reservation = reservation;
         this.botConfig = botConfig;
         this.keyboardMarkup = keyboardMarkup;
@@ -49,9 +52,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.adminKeyRepository = adminKeyRepository;
         this.buttonRepository = buttonRepository;
         this.coworkerRepository = coworkerRepository;
+        this.orderRepository = orderRepository;
     }
-
-    private long coworkerChatId = 12; //TODO
 
     @Override
     public String getBotUsername() {
@@ -78,10 +80,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (messageText) {
                 case "/start" -> {
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                }
-                case "/admin" -> {
-                    coworkerChatId = chatId;
-                    sendMessage(chatId, "Введите ключ");
                 }
             }
             if(messageText.startsWith("/reservation")) {
@@ -142,7 +140,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String[] itemInfo = callbackData.substring(14).split(" ");
                 order.addToTotal(Integer.parseInt(itemInfo[1]));
                 order.getAddedItems().add(itemInfo[0]);
-                sendMessage(chatId, "Добавлено в корзину", keyboardMarkup.getKeyboardMarkup("foodmenu"));
+
+                sendMessage(chatId, "text", keyboardMarkup.getKeyboardMarkup("confirmationmenu", itemInfo[0], itemInfo[1]));
+            }
+            else if (callbackData.startsWith("CONFIRMATION_BUTTON")){
+                String[] itemInfo = callbackData.substring(19).split(" ");
+                order.addToTotal(Integer.parseInt(itemInfo[1]));
+                order.getAddedItems().add(itemInfo[0]);
             }
 
             switch (callbackData) {
@@ -151,12 +155,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     String text = "Введите номер стола: ";
                     sendMessage(chatId, text, tableChoosingKeyboardMarkup.getTableChoosingKeyboardMarkup());
                 }
-                case "BUY_BUTTON" ->
+                case "FOODMENU_BUTTON" ->
                     sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
 
-                case "DELIVERY_BUTTON" -> {
-                    sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
-                }
                 case "TABLE_1" -> {
                     reservation.setTable(1);
                     String text = "Вы выбрали стол 1, теперь нужно ввести имя на которое вы хотите" +
@@ -188,8 +189,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "CROISSANT_BUTTON" -> {
                     sendMessage(chatId, "Croisaants", keyboardMarkup.getKeyboardMarkup("croissantmenu"));
                 }
-                case "FINAL_BUTTON" -> {
-
+                case "PAYMENT_BUTTON" -> {
+                    String text = "Для оплаты нужно перевести" + order.getTotal() + " рублей на карту 1234 3456 " +
+                            "2345 4556 или на телефон 9485749284 далее нажмите на кнопку олпачено и после этого" +
+                            "информация попадет к нашему сотруднику";
+                    sendMessage(chatId, text, createOneButton("Подтвердить", "PAYMENTCONFIRMED_BUTTON"));
+                }
+                case "PAYMENTCONFIRMED_BUTTON" -> {
+                    sendMessage(chatId, "Благодарим за покупку");
+                    Long coworkerChatId = Long.valueOf(Objects.requireNonNull(coworkerRepository.findById(1).orElse(null)).getChatId());
+                    sendMessage(coworkerChatId, "Заказ на сумму " + order.getTotal() + " рублей " + order.toString());
                 }
             }
         }
@@ -221,6 +230,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
         sendMessage.setText(textToSend);
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void sendMessage(Long chatId, InlineKeyboardMarkup keyboardMarkup) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setReplyMarkup(keyboardMarkup);
         try {
             execute(sendMessage);
         } catch (TelegramApiException e) {
