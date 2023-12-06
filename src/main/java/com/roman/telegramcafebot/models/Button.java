@@ -1,6 +1,7 @@
 package com.roman.telegramcafebot.models;
 
 import jakarta.persistence.*;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Entity

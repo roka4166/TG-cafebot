@@ -14,12 +14,24 @@ public class Coworker {
     @Column(name = "chat_id")
     private String chatId;
 
+    @Column(name = "is_active")
+    private Boolean IsActive;
+
     public Coworker() {
     }
 
-    public Coworker(int id, String chatId) {
+    public Boolean getActive() {
+        return IsActive;
+    }
+
+    public void setActive(Boolean active) {
+        IsActive = active;
+    }
+
+    public Coworker(int id, String chatId, Boolean isActive) {
         this.id = id;
         this.chatId = chatId;
+        IsActive = isActive;
     }
 
     public int getId() {

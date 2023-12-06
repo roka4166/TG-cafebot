@@ -12,10 +12,13 @@ public class AdminKey {
     private Integer id;
     @Column(name = "key")
     private String key;
+    @Column(name = "isActive")
+    private Boolean IsActive;
 
-    public AdminKey(Integer id, String key) {
+    public AdminKey(Integer id, String key, Boolean isActive) {
         this.id = id;
         this.key = key;
+        IsActive = isActive;
     }
 
     public AdminKey() {
@@ -35,5 +38,13 @@ public class AdminKey {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public Boolean getActive() {
+        return IsActive;
+    }
+
+    public void setActive(Boolean active) {
+        IsActive = active;
     }
 }

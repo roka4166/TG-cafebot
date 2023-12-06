@@ -1,20 +1,20 @@
 package com.roman.telegramcafebot.models;
 
-import com.roman.telegramcafebot.models.Button;
 import jakarta.persistence.*;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
 @Entity
-@Table(name = "order")
+@Component
+@Table(name = "order_info")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
-    @Column(name = "chatId")
+    @Column(name = "chat_id")
     private Integer chatId;
-    @Column(name = "totalPrice")
+    @Column(name = "total_price")
     private Integer totalPrice;
 
     @Column(name = "items")
@@ -60,5 +60,13 @@ public class Order {
 
     public void setItems(String items) {
         this.items = items;
+    }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "totalPrice=" + totalPrice +
+                ", items='" + items + '\'' +
+                '}';
     }
 }
