@@ -23,6 +23,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @AllArgsConstructor
@@ -116,9 +118,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
             }
             else if (messageText.startsWith("/newitem")){
-                String menuItemInfo = messageText.substring(9);
-                button.setName(menuItemInfo);
-                button.setCallbackData("ADDITEM_BUTTON"+menuItemInfo);
+                String menuItemInfo = messageText.substring(9).trim();
+                button.setName(getItemsName(menuItemInfo + " " + getItemsPrice(menuItemInfo.split(" "))));
+                button.setCallbackData("ADDITEM_BUTTON"+menuItemInfo.replace("\"", ""));
                 sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
                         keyboardMarkup.getKeyboardMarkup("adminmenu"));
 
@@ -151,7 +153,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             else if (callbackData.startsWith("ADDTOCART_BUTTON")){
                 String[] itemInfo = callbackData.substring(16).split(" ");
                 ifOrderTotalPriceNullInitialize();
-                order.setTotalPrice(order.getTotalPrice() + Integer.parseInt(itemInfo[1]));
+                order.setTotalPrice(order.getTotalPrice() + Integer.parseInt(getItemsPrice(itemInfo)));
                 ifItemStringIsNullInitialize();
                 order.setItems(order.getItems() + " " + itemInfo[0]);
                 sendMessage(chatId, "Добавлено в корзину", getGoToMenuButton());
@@ -290,6 +292,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
     private InlineKeyboardMarkup getGoToMenuButton(){
         return createOneButton("Перейти в меню", "FOODMENU_BUTTON");
+    }
+    private String getItemsName(String itemInfo){
+        Pattern p = Pattern.compile("\"([^\"]*)\"");
+        Matcher m = p.matcher(itemInfo);
+        m.find();
+        return m.group();
+    }
+    private String getItemsPrice(String[] itemInfo){
+        return itemInfo[itemInfo.length-1];
     }
 
 
