@@ -9,5 +9,7 @@ import java.util.List;
 
 @Repository
 public interface CoworkerRepository extends JpaRepository<Coworker, Integer> {
-    public Coworker findCoworkerByChatId(String chatId);
+   Coworker findCoworkerByChatId(String chatId);
+
+   Coworker findCoworkerByIsActive(Boolean active);
 }

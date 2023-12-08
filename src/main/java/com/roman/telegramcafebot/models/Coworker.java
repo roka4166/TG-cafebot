@@ -15,23 +15,23 @@ public class Coworker {
     private String chatId;
 
     @Column(name = "is_active")
-    private Boolean IsActive;
+    private Boolean isActive;
 
     public Coworker() {
     }
 
     public Boolean getActive() {
-        return IsActive;
+        return isActive;
     }
 
     public void setActive(Boolean active) {
-        IsActive = active;
+        isActive = active;
     }
 
     public Coworker(int id, String chatId, Boolean isActive) {
         this.id = id;
         this.chatId = chatId;
-        IsActive = isActive;
+        isActive = isActive;
     }
 
     public int getId() {
