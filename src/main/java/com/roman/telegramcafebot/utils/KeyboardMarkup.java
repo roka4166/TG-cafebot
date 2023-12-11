@@ -31,11 +31,11 @@ public class KeyboardMarkup {
         return buttons;
     }
 
-    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons){
+    private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons, int rowsPerLine){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
-        int batchSize = 3;
+        int batchSize = rowsPerLine;
         int totalButtons = buttons.size();
         int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
 
@@ -54,10 +54,10 @@ public class KeyboardMarkup {
         return keyboardMarkup;
     }
 
-    public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu){
-        return createInlineKeyboardMarkup(getButtons(typeOfMenu));
+    public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu, int rowsPerLine){
+        return createInlineKeyboardMarkup(getButtons(typeOfMenu), rowsPerLine);
     }
     public InlineKeyboardMarkup getKeyboardMarkup(String typeOfMenu, String itemName, String itemPrice){
-        return createInlineKeyboardMarkup(getButtons(typeOfMenu, itemName, itemPrice));
+        return createInlineKeyboardMarkup(getButtons(typeOfMenu, itemName, itemPrice) ,1 );
     }
 }

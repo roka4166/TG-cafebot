@@ -121,7 +121,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     button.setName(itemInfo.replace("\"", ""));
                     button.setCallbackData("ADDITEM_BUTTON"+itemInfo);
                     sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
-                            keyboardMarkup.getKeyboardMarkup("adminmenu"));
+                            keyboardMarkup.getKeyboardMarkup("adminmenu", 3));
                 }
                 else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
             }
@@ -170,71 +170,71 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "RESERVATION" -> {
                     reservation = new Reservation();
                     String text = "Введите номер стола: ";
-                    sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup("tablemenu"));
+                    sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup("tablemenu", 4));
                 }
                 case "FOODMENU" ->
-                    sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
+                    sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu", 3));
 
                 case "RESERVATION_CONFIRMED" -> {
                     String text = "Бронь стола подтверждена";
                     sendMessage(chatId, text);
                 }
                 case "BREAKFASTS" -> {;
-                    sendMessage(chatId, "Напитки", keyboardMarkup.getKeyboardMarkup("breakfastmenu"));
+                    sendMessage(chatId, "Напитки", keyboardMarkup.getKeyboardMarkup("breakfastmenu", 1));
                 }
                 case "CROISSANTS" -> {
-                    sendMessage(chatId, "Круасаны", keyboardMarkup.getKeyboardMarkup("croissantmenu"));
+                    sendMessage(chatId, "Круасаны", keyboardMarkup.getKeyboardMarkup("croissantmenu", 1));
                 }
                 case "ROMANPIZZAS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("romanpizzamenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("romanpizzamenu", 2));
                 }
                 case "HOTFOOD" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("hotfoodmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("hotfoodmenu", 2));
                 }
                 case "PIESCHUDU" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("pieschudumenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("pieschudumenu", 1));
                 }
                 case "SOUPS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("soupmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("soupmenu", 2));
                 }
                 case "SALADS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("saladmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("saladmenu", 2));
                 }
                 case "SANDWICHES" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("sandwichmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("sandwichmenu", 2));
                 }
                 case "BRUSCHETTAS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("bruschettamenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("bruschettamenu", 2));
                 }
                 case "ADDITION" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("additionmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("additionmenu", 2));
                 }
                 case "DRINKS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinkmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinkmenu", 2));
                 }
                 case "DESERTS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("desertmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("desertmenu", 2));
                 }
                 case "BREAD" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("breadmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("breadmenu", 2));
                 }
                 case "TEA" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("teamenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("teamenu", 2));
                 }
                 case "COFFEE" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("coffemenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("coffemenu", 2));
                 }
                 case "CACAO" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("cacaomenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("cacaomenu",2 ));
                 }
                 case "SIGNATUREDRINKS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("signaturedrinksmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("signaturedrinksmenu", 2));
                 }
                 case "NOTTEA" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("notteamenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("notteamenu", 2));
                 }
                 case "DRINKSADDITION" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinksadditionmenu"));
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinksadditionmenu", 2));
                 }
 
                 case "PAYMENT" -> {
@@ -261,7 +261,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(Long chatId, String name) {
         String answer = "Приветствую, " + name;
-        sendMessage(chatId, answer, keyboardMarkup.getKeyboardMarkup("mainmenu"));
+        sendMessage(chatId, answer, keyboardMarkup.getKeyboardMarkup("mainmenu", 1));
     }
 
     private void sendMessage(Long chatId, String textToSend, InlineKeyboardMarkup keyboardMarkup) {
