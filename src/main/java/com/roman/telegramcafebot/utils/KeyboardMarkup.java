@@ -24,8 +24,8 @@ public class KeyboardMarkup {
     private List<Button> getButtons (String typeOfMenu, String itemName, String itemPrice){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenu(typeOfMenu);
         for(Button button : buttons){
-            if (button.getCallbackData().equals("ADDTOCART_BUTTON")){
-                button.setCallbackData("ADDTOCART_BUTTON"+itemName+" "+itemPrice);
+            if (button.getCallbackData().equals("ADDTOCART")){
+                button.setCallbackData("ADDTOCART"+itemName+" "+itemPrice);
             }
         }
         return buttons;

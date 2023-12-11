@@ -12,7 +12,112 @@ create table button(
     callbackdata varchar(50) not null
 );
 
-insert into button (name, belongs_to_menu, callbackdata) VALUES ('', '', '');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Горячее', 'adminmenu', 'TYPEhotfood');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ремесленные пироги "Чуду"', 'adminmenu', 'TYPEpieschudu');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Супы', 'adminmenu', 'TYPEsoup');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Салаты', 'adminmenu', 'TYPEsalad');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Сэндвичи', 'adminmenu', 'TYPEsandwich');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Брускетты', 'adminmenu', 'TYPEbruschetta');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Добавки к блюдам', 'adminmenu', 'TYPEaddition');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Десерты', 'adminmenu', 'TYPEdesert');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Хлеб', 'adminmenu', 'TYPEbread');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Слоёное тесто', 'adminmenu', 'TYPEpuffpastry');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Кофе', 'adminmenu', 'TYPEcoffe');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Какао', 'adminmenu', 'TYPEcacao');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Чай', 'adminmenu', 'TYPEtea');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Авт-напитки', 'adminmenu', 'TYPEsignaturedrinks');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Не чай', 'adminmenu', 'TYPEnottea');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Добавки к напиткам', 'adminmenu', 'TYPEdrinksaddition');
+
+
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Завтраки', 'foodmenu', 'BREAKFASTS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Круассаны', 'foodmenu', 'CROISSANTS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Римская пицца', 'foodmenu', 'ROMANPIZZAS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Горячее', 'foodmenu', 'HOTFOOD');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ремесленные пироги "Чуду"', 'foodmenu', 'PIESCHUDU');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Супы', 'foodmenu', 'SOUPS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Салаты', 'foodmenu', 'SALADS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Сэндвичи', 'foodmenu', 'SANDWICHES');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Брускетты', 'foodmenu', 'BRUSCHETTAS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Добавки к блюдам', 'foodmenu', 'ADDITION');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Напитки', 'foodmenu', 'DRINKS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Десерты', 'foodmenu', 'DESERTS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Хлеб', 'foodmenu', 'BREAD');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Слоёное тесто', 'foodmenu', 'PUFFPASTRY');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Просмотреть корзину',
+                                                                 'foodmenu', 'SHOWCART');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Перейти к оплате',
+                                                                 'foodmenu', 'PAYMENT');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Кофе', 'drinkmenu', 'COFFEE');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Какао', 'drinkmenu', 'CACAO');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Чай', 'drinkmenu', 'TEA');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Авторское', 'drinkmenu', 'SIGNATUREDRINKS');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Не чай', 'drinkmenu', 'NOTTEA');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Добавки', 'drinkmenu', 'DRINKSADDITION');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Главное меню', 'drinkmenu', 'FOODMENU');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Да', 'confirmationmenu', 'ADDTOCART');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Нет', 'confirmationmenu', 'FOODMENU');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Эспрессо 120', 'coffemenu', 'ADDITEM"Эспрессо" 120');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Кемекс 220', 'coffemenu', 'ADDITEM"Кемекс" 220');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Фильтр (мал) 150', 'coffemenu', 'ADDITEM"Фильтр (мал)" 150');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Фильтр (боль) 190' , 'coffemenu', 'ADDITEM"Фильтр (боль)" 190');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Американо (мал) 150', 'coffemenu', 'ADDITEM"Американо (мал)" 150');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Американо (боль) 200', 'coffemenu', 'ADDITEM"Американо (боль)" 200');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Капучино (мал) 190', 'coffemenu', 'ADDITEM"Капучино (мал)" 190');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Капучино (боль) 220', 'coffemenu', 'ADDITEM"Капучино (боль)" 220');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Латте 220', 'coffemenu', 'ADDITEM"Латте" 220');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Флэт уайт (мал) 210', 'coffemenu', 'ADDITEM"Флэт уайт (мал)" 210');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Флэт уайт (боль) 290', 'coffemenu', 'ADDITEM"Флэт уайт (боль)" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Раф цитрус 290', 'coffemenu', 'ADDITEM"Раф цитрус" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Раф лаванда 290', 'coffemenu', 'ADDITEM"Раф лаванда" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Раф ваниль 290', 'coffemenu', 'ADDITEM"Раф ваниль" 290');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молоко миндальное 90', 'drinksadditionmenu', 'ADDITEM"Молоко миндальное" 90');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молоко кокосовое 90', 'drinksadditionmenu', 'ADDITEM"Молоко кокосовое" 90');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молоко безлактозное 90', 'drinksadditionmenu', 'ADDITEM"Молоко безлактозное" 90');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Сироп 35', 'drinksadditionmenu', 'ADDITEM"Сироп" 35');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молоко 30мл 20', 'drinksadditionmenu', 'ADDITEM"Молоко 30мл" 20');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Сливки 30мл 50', 'drinksadditionmenu', 'ADDITEM"Сливки 30мл" 50');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Лимон 50', 'drinksadditionmenu', 'ADDITEM"Лимон" 50');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Чабрец 50', 'drinksadditionmenu', 'ADDITEM"Чабрец" 50');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Детское 190', 'cacaomenu', 'ADDITEM"Детское" 190');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Бородинский 240', 'cacaomenu', 'ADDITEM"Бородинский" 240');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Минта 240', 'cacaomenu', 'ADDITEM"Минта" 240');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Крафт какао 55% 290', 'cacaomenu', 'ADDITEM"Крафт какао 55%" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Крафт какао 63% 290', 'cacaomenu', 'ADDITEM"Крафт какао 63%" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Крафт какао 80% 290', 'cacaomenu', 'ADDITEM"Крафт какао 80%" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Марроканский 240', 'cacaomenu', 'ADDITEM"Марроканский" 240');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Пряный ирландец 390', 'cacaomenu', 'ADDITEM"Пряный ирландец" 390');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Маршмэллоу 30', 'cacaomenu', 'ADDITEM"Маршмэллоу" 30');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Облепиховый чай 0.75л 320', 'teamenu', 'ADDITEM"Облепиховый чай 0.75л" 320');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ананасовый чай 0.3л 240', 'teamenu', 'ADDITEM"Ананасовый чай 0.3л" 240');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ананасовый чай 0.7л 480', 'teamenu', 'ADDITEM"Ананасовый чай 0.7л" 480');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Гречишный чай 0.5л 320', 'teamenu', 'ADDITEM"Гречишный чай 0.5л" 320');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Гречишный чай 0.75л 390', 'teamenu', 'ADDITEM"Гречишный чай 0.75л" 390');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Те Гуань Инь (зел) 0.5л 350', 'teamenu', 'ADDITEM"Те Гуань Инь (зел) 0.5л" 350');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Те Гуань Инь (зел) 0.75л 440', 'teamenu', 'ADDITEM"Те Гуань Инь (зел) 0.75л" 440');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молочный улун (зел) 0.5л 390', 'teamenu', 'ADDITEM"Молочный улун (зел) 0.5л" 390');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Молочный улун (зел) 0.75л 490', 'teamenu', 'ADDITEM"Молочный улун (зел) 0.75л" 490');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ассам (чер) 0.5л 350', 'teamenu', 'ADDITEM"Ассам (чер) 0.5л" 350');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Ассам (чер) 0.75л 440', 'teamenu', 'ADDITEM"Ассам (чер) 0.75л" 440');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Эрл грей (чер) 0.5л 350', 'teamenu', 'ADDITEM"Эрл грей (чер) 0.5л" 350');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Эрл грей (чер) 0.75л 440', 'teamenu', 'ADDITEM"Эрл грей (чер) 0.75л" 440');
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Маття раф 290', 'signaturedrinksmenu', 'ADDITEM"Маття раф" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Жасмин раф 290', 'signaturedrinksmenu', 'ADDITEM"Жасмин раф" 290');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Тыквенный латте 240', 'signaturedrinksmenu', 'ADDITEM"Тыквенный латте" 240');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Пунш грейпфрут ежевика 320', 'signaturedrinksmenu', 'ADDITEM"Пунш грейпфрут ежевика" 320');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Глинтвейн 320', 'signaturedrinksmenu', 'ADDITEM"Глинтвейн" 320');
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Сливочный ОРЕО 340', 'signaturedrinksmenu', 'ADDITEM"Сливочный ОРЕО" 340');
+
+
 
 create table coworker_info(
     id int generated by default as identity primary key,

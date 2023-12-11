@@ -138,14 +138,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             String callbackData = update.getCallbackQuery().getData();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
 
-            if(callbackData.startsWith("ADDITEM_BUTTON")){
-                String item = callbackData.substring(14);
+            if(callbackData.startsWith("ADDITEM")){
+                String item = callbackData.substring(7);
                 String itemName = getItemsName(item);
                 String itemsPrice = getItemsPrice(item);
                 sendMessage(chatId, "Добавить в корзину?", keyboardMarkup.getKeyboardMarkup("confirmationmenu", itemName, itemsPrice));
             }
-            else if (callbackData.startsWith("ADDTOCART_BUTTON")){
-                String itemInfo = callbackData.substring(16);
+            else if (callbackData.startsWith("ADDTOCART")){
+                String itemInfo = callbackData.substring(9);
                 ifOrderTotalPriceNullInitialize();
                 order.setTotalPrice(order.getTotalPrice() + Integer.parseInt(getItemsPrice(itemInfo)));
                 ifItemStringIsNullInitialize();
@@ -167,34 +167,83 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
 
             switch (callbackData) {
-                case "RESERVATION_BUTTON" -> {
+                case "RESERVATION" -> {
                     reservation = new Reservation();
                     String text = "Введите номер стола: ";
                     sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup("tablemenu"));
                 }
-                case "FOODMENU_BUTTON" ->
+                case "FOODMENU" ->
                     sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup("foodmenu"));
 
                 case "RESERVATION_CONFIRMED" -> {
                     String text = "Бронь стола подтверждена";
                     sendMessage(chatId, text);
                 }
-                case "DRINKS_BUTTON" -> {;
-                    sendMessage(chatId, "Напитки", keyboardMarkup.getKeyboardMarkup("drinkmenu"));
+                case "BREAKFASTS" -> {;
+                    sendMessage(chatId, "Напитки", keyboardMarkup.getKeyboardMarkup("breakfastmenu"));
                 }
-                case "CROISSANT_BUTTON" -> {
+                case "CROISSANTS" -> {
                     sendMessage(chatId, "Круасаны", keyboardMarkup.getKeyboardMarkup("croissantmenu"));
                 }
-                case "ROMANPIZZA_BUTTON" -> {
+                case "ROMANPIZZAS" -> {
                     sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("romanpizzamenu"));
                 }
-                case "PAYMENT_BUTTON" -> {
+                case "HOTFOOD" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("hotfoodmenu"));
+                }
+                case "PIESCHUDU" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("pieschudumenu"));
+                }
+                case "SOUPS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("soupmenu"));
+                }
+                case "SALADS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("saladmenu"));
+                }
+                case "SANDWICHES" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("sandwichmenu"));
+                }
+                case "BRUSCHETTAS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("bruschettamenu"));
+                }
+                case "ADDITION" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("additionmenu"));
+                }
+                case "DRINKS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinkmenu"));
+                }
+                case "DESERTS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("desertmenu"));
+                }
+                case "BREAD" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("breadmenu"));
+                }
+                case "TEA" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("teamenu"));
+                }
+                case "COFFEE" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("coffemenu"));
+                }
+                case "CACAO" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("cacaomenu"));
+                }
+                case "SIGNATUREDRINKS" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("signaturedrinksmenu"));
+                }
+                case "NOTTEA" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("notteamenu"));
+                }
+                case "DRINKSADDITION" -> {
+                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup("drinksadditionmenu"));
+                }
+
+                case "PAYMENT" -> {
                     String text = "Для оплаты нужно перевести " + order.getTotalPrice() + " рублей на карту 1234 3456 " +
                             "2345 4556 или на телефон 9485749284 далее нажмите на кнопку олпачено и после этого" +
                             "информация попадет к нашему сотруднику";
-                    sendMessage(chatId, text, createOneButton("Подтвердить", "PAYMENTCONFIRMED_BUTTON"));
+                    sendMessage(chatId, text, createOneButton("Подтвердить", "PAYMENTCONFIRMED"));
                 }
-                case "PAYMENTCONFIRMED_BUTTON" -> {
+                case "PAYMENTCONFIRMED" -> {
                     sendMessage(chatId, "Благодарим за покупку");
                     Long coworkerChatId = getCoworkerChatId();
                     sendMessage(coworkerChatId, "Заказ на сумму " + order.getTotalPrice() + " рублей " + order.toString());
@@ -211,7 +260,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(Long chatId, String name) {
-        String answer = "Привет ЖУК, " + name + ", ЧЕГО ТУТ ЗАБЫЛА???";
+        String answer = "Приветствую, " + name;
         sendMessage(chatId, answer, keyboardMarkup.getKeyboardMarkup("mainmenu"));
     }
 
@@ -277,7 +326,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
     private InlineKeyboardMarkup getGoToMenuButton(){
-        return createOneButton("Перейти в меню", "FOODMENU_BUTTON");
+        return createOneButton("Перейти в меню", "FOODMENU");
     }
     private String getItemsName(String itemInfo){
         Pattern p = Pattern.compile("\"([^\"]*)\"");
