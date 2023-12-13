@@ -15,4 +15,6 @@ public interface ButtonRepository extends JpaRepository<Button, Integer> {
     public List<Button> findAllByCallbackDataStartingWith(String startingWith);
 
     List<Button> findAllByIdIsGreaterThan(Integer id);
+
+    Button findButtonByCallbackData(String callbackData);
 }

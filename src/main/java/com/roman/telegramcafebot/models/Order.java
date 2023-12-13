@@ -64,9 +64,6 @@ public class Order {
 
     @Override
     public String toString() {
-        return "Order{" +
-                "totalPrice=" + totalPrice +
-                ", items='" + items + '\'' +
-                '}';
+        return "Заказ номер #" + id + " на сумму " + totalPrice + " руб. Содержит : " + items;
     }
 }

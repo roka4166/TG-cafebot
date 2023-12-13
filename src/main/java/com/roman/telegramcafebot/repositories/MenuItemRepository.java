@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Integer> {
     List<MenuItem> findAllByBelongsToMenu(String belongsToMenu);
+
+    MenuItem findMenuItemByName(String name);
 }
