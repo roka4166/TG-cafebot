@@ -47,10 +47,6 @@ public class Reservation {
 
     @Override
     public String toString() {
-        return "Reservation{" +
-                "table=" + table +
-                ", name='" + name + '\'' +
-                ", time='" + time + '\'' +
-                '}';
+        return "Бронь стола " + table + " на имя " + name + ". Время " + time;
     }
 }

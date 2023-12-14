@@ -125,9 +125,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             else if (messageText.startsWith("/deleteitem")){
                 if(validateCoworker(chatId)){
-                    String itemName = messageText.substring(12);
-                    Button itemForRemoval = buttonRepository.findButtonByNameStartingWith(itemName.replace("\"", ""));
-                    buttonRepository.delete(itemForRemoval);
+                    deleteMenuItem(messageText);
+                    sendMessage(chatId, "Удалено успешно", getGoToMenuButton());
                 }
                 else sendMessage(chatId, "Не удалено, у вас нет доступа к этой функции");
             }
@@ -136,6 +135,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             String callbackData = update.getCallbackQuery().getData();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             if (callbackData.startsWith("TYPE")){
+                createButtonFromMenuItem(setMenuItemsMenuBelonging(callbackData));
                 sendMessage(getCoworkerChatId(), "Добавлено успешно", getGoToMenuButton());
             }
             else if (callbackData.startsWith("TABLE_")){
@@ -144,6 +144,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String text = "Вы выбрали стол " + tableNumber + " теперь нужно ввести имя на которое вы хотите" +
                         "забронировать столик. Введите /reservation  далее ваше имя например /reservation Роман";
                 sendMessage(chatId, text);
+            }
+            else if (callbackData.startsWith("REMOVEFROMCART")){
+                removeFromCart(callbackData);
+                sendMessage(chatId, "Удалено из корзины", getGoToMenuButton());
             }
             else if(callbackData.startsWith("ITEM")){
                 sendMessage(chatId, createConfirmationText(findItemById(callbackData)),
@@ -211,7 +215,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId,"Напитки", keyboardMarkup.getKeyboardMarkup(getButtons("drinkmenu"), 2));
                 }
                 case "DESERTS" -> {
-                    sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup(getButtons("desertmenu"), 2));
+                    sendMessage(chatId,getMenuText(getItemsByMenuBelonging("desertmenu")),
+                            keyboardMarkup.getKeyboardMarkup(getButtons("desertmenu"), 2));
                 }
                 case "BREAD" -> {
                     sendMessage(chatId,"Римские пиццы", keyboardMarkup.getKeyboardMarkup(getButtons("breadmenu"), 2));
@@ -253,6 +258,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                     Long coworkerChatId = getCoworkerChatId();
                     sendMessage(coworkerChatId, order.toString());
                 }
+                case "SHOWCART" -> {
+                    sendMessage(chatId, getMenuTextForCart(cart.getMenuItemList()), keyboardMarkup.getCartKeyBoardMarkup(cart));
+                }
+                case "REMOVEALLFROMCART" -> {
+                    cart.resetCart();
+                    sendMessage(chatId, "Корзина очищина", getGoToMenuButton());
+                }
+
             }
         }
     }
@@ -324,7 +337,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         Pattern p = Pattern.compile("\"([^\"]*)\"");
         Matcher m = p.matcher(itemInfo);
         m.find();
-        return m.group();
+        return m.group().replace("\"", "");
     }
     private String getItemsPrice(String itemInfo){
         String [] info = itemInfo.split(" ");
@@ -346,6 +359,23 @@ public class TelegramBot extends TelegramLongPollingBot {
         for (int i = 0; i < items.size(); i++) {
             menuText.append(i+1 + ". " + items.get(i).getName() + " " + items.get(i).getPrice() + " руб." + "\n");
         }
+        return menuText.toString();
+    }
+
+    private String getMenuTextForCart(List<MenuItem> items){
+        if(items.isEmpty()) {
+            return "Корзина пуста";
+        }
+        StringBuilder menuText = new StringBuilder();
+        String cartMenuText = "Что бы удалить предмет из корзины, просто кликните по номеру который соответствует товару" + "\n" + "\n";
+        menuText.append(cartMenuText);
+        int sum = 0;
+        for (int i = 0; i < items.size(); i++) {
+            menuText.append(i + 1 + ". " + items.get(i).getName() + " " + items.get(i).getPrice() + " руб." + "\n");
+            sum += items.get(i).getPrice();
+        }
+        String infoAboutSum = "\n" + "Сумма корзины " + sum;
+        menuText.append(infoAboutSum);
         return menuText.toString();
     }
     private List<Button> sortButtonsByName(List<Button> buttonsToSort){
@@ -404,21 +434,42 @@ public class TelegramBot extends TelegramLongPollingBot {
         orderRepository.save(order);
         return order;
     }
-    private void deleteMenuItem(String menuItemName){
+    private void deleteMenuItem(String messageText){
+        String menuItemName = getItemsName(messageText);
         MenuItem menuItemForRemoval = menuItemRepository.findMenuItemByName(menuItemName);
         int menuItemId = menuItemForRemoval.getId();
         Button buttonForRemoval = buttonRepository.findButtonByCallbackData("ITEM"+menuItemId);
         buttonRepository.delete(buttonForRemoval);
         menuItemRepository.delete(menuItemForRemoval);
     }
-    private int createMenuItem(String menuItemInfo){
-        String itemInfo = menuItemInfo.substring(9).trim();
-        String menuItemName = getItemsName(menuItemInfo);
-        int menuItemsPrice = Integer.valueOf(getItemsPrice(menuItemInfo));
+    private void createMenuItem(String menuItemInfo){
+        String itemInfo = menuItemInfo.trim();
+        String menuItemName = getItemsName(itemInfo);
+        int menuItemsPrice = Integer.valueOf(getItemsPrice(itemInfo));
         MenuItem menuItem = new MenuItem();
         menuItem.setName(menuItemName);
         menuItem.setPrice(menuItemsPrice);
-        return menuItem.getId();
+        menuItem.setBelongsToMenu("unknown");
+        menuItemRepository.save(menuItem);
+    }
+
+    private MenuItem setMenuItemsMenuBelonging(String belongsToMenu){
+        MenuItem menuItem = menuItemRepository.findMenuItemByBelongsToMenu("unknown");
+        menuItem.setBelongsToMenu(belongsToMenu.substring(4)+"menu");
+        menuItemRepository.save(menuItem);
+        return menuItem;
+    }
+    private void createButtonFromMenuItem(MenuItem menuItem){
+        Button buttonToAdd = new Button();
+        List<MenuItem> items = menuItemRepository.findAllByBelongsToMenu(menuItem.getBelongsToMenu());
+        buttonToAdd.setName(String.valueOf(items.size()));
+        buttonToAdd.setBelongsToMenu(menuItem.getBelongsToMenu());
+        buttonToAdd.setCallbackData("ITEM"+String.valueOf(menuItem.getId()));
+        buttonRepository.save(buttonToAdd);
+    }
+    private void removeFromCart(String callbackData){
+        int index = Integer.valueOf(callbackData.substring(14));
+        cart.getMenuItemList().remove(index);
     }
 
 
