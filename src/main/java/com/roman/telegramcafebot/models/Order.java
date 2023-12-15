@@ -13,7 +13,7 @@ public class Order {
     @Column(name = "id")
     private Integer id;
     @Column(name = "chat_id")
-    private Integer chatId;
+    private Long chatId;
     @Column(name = "total_price")
     private Integer totalPrice;
 
@@ -23,7 +23,7 @@ public class Order {
     public Order() {
     }
 
-    public Order(Integer id, Integer chatId, Integer totalPrice, String items) {
+    public Order(Integer id, Long chatId, Integer totalPrice, String items) {
         this.id = id;
         this.chatId = chatId;
         this.totalPrice = totalPrice;
@@ -38,11 +38,11 @@ public class Order {
         this.id = id;
     }
 
-    public Integer getChatId() {
+    public Long getChatId() {
         return chatId;
     }
 
-    public void setChatId(Integer chatId) {
+    public void setChatId(Long chatId) {
         this.chatId = chatId;
     }
 

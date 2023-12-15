@@ -1,6 +1,7 @@
 package com.roman.telegramcafebot.utils;
 
 import com.roman.telegramcafebot.models.Button;
+import com.roman.telegramcafebot.models.Cart;
 import com.roman.telegramcafebot.models.MenuItem;
 import com.roman.telegramcafebot.repositories.ButtonRepository;
 import com.roman.telegramcafebot.repositories.MenuItemRepository;
@@ -12,7 +13,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 @Component
 public class KeyboardMarkup {
@@ -72,8 +72,7 @@ public class KeyboardMarkup {
         replyKeyboardMarkup.setKeyboard(rows);
         return replyKeyboardMarkup;
     }
-    public InlineKeyboardMarkup getCartKeyBoardMarkup(Cart cart){
-        List<MenuItem> items = cart.getMenuItemList();
+    public InlineKeyboardMarkup getCartKeyBoardMarkup(List<MenuItem> items){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
@@ -86,7 +85,7 @@ public class KeyboardMarkup {
             for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
                 button.setText(String.valueOf(i+1));
-                button.setCallbackData("REMOVEFROMCART"+i);
+                button.setCallbackData("REMOVEFROMCART"+items.get(i).getId());
                 row.add(button);
             }
             rowsInLine.add(row);

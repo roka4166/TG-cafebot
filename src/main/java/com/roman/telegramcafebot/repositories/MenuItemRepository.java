@@ -13,4 +13,6 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Integer> {
     MenuItem findMenuItemByName(String name);
 
     MenuItem findMenuItemByBelongsToMenu(String belongsToMenu);
+
+    List<MenuItem> findAllById(Integer id);
 }
