@@ -7,6 +7,12 @@ public class Reservation {
 
     private long customerChatId;
 
+    private int table;
+
+    private String name;
+
+    private String time;
+
     public long getCustomerChatId() {
         return customerChatId;
     }
@@ -14,12 +20,6 @@ public class Reservation {
     public void setCustomerChatId(long customerChatId) {
         this.customerChatId = customerChatId;
     }
-
-    private int table;
-
-    private String name;
-
-    private String time;
 
     public int getTable() {
         return table;

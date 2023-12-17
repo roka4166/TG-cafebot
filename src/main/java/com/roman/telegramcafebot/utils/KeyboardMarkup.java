@@ -18,11 +18,8 @@ import java.util.List;
 public class KeyboardMarkup {
 
     private ButtonRepository buttonRepository;
-
-    private MenuItemRepository menuItemRepository;
     @Autowired
-    public KeyboardMarkup(ButtonRepository buttonRepository, MenuItemRepository menuItemRepository) {
-        this.menuItemRepository = menuItemRepository;
+    public KeyboardMarkup(ButtonRepository buttonRepository) {
         this.buttonRepository = buttonRepository;
     }
     private List<Button> getButtons (String typeOfMenu, String itemName, String itemPrice){

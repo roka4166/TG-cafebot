@@ -12,7 +12,7 @@ public class Coworker {
     @Column(name = "id")
     private int id;
     @Column(name = "chat_id")
-    private String chatId;
+    private Long chatId;
 
     @Column(name = "is_active")
     private Boolean isActive;
@@ -28,10 +28,10 @@ public class Coworker {
         isActive = active;
     }
 
-    public Coworker(int id, String chatId, Boolean isActive) {
+    public Coworker(int id, Long chatId, Boolean isActive) {
         this.id = id;
         this.chatId = chatId;
-        isActive = isActive;
+        this.isActive = isActive;
     }
 
     public int getId() {
@@ -42,11 +42,11 @@ public class Coworker {
         this.id = id;
     }
 
-    public String getChatId() {
+    public Long getChatId() {
         return chatId;
     }
 
-    public void setChatId(String chatId) {
+    public void setChatId(Long chatId) {
         this.chatId = chatId;
     }
 }
