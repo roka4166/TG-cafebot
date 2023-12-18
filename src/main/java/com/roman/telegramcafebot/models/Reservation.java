@@ -1,31 +1,63 @@
 package com.roman.telegramcafebot.models;
 
+import jakarta.persistence.*;
 import org.springframework.stereotype.Component;
 
 @Component
+@Entity
+@Table(name = "reservation")
 public class Reservation {
-
-    private long customerChatId;
-
-    private int table;
-
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+    @Column(name = "chat_id")
+    private Long chatId;
+    @Column(name = "table_number")
+    private Integer table;
+    @Column(name = "name")
     private String name;
-
+    @Column(name = "time")
     private String time;
+    @Column(name = "confirmed")
+    private Boolean confirmed;
+    @Column(name = "comment")
+    private String coworkerComment;
 
-    public long getCustomerChatId() {
-        return customerChatId;
+    public Reservation(Integer id, Long customerChatId, Integer table, String name, String time, Boolean reservationConfirmed, String coworkerComment) {
+        this.id = id;
+        this.chatId = customerChatId;
+        this.table = table;
+        this.name = name;
+        this.time = time;
+        this.confirmed = reservationConfirmed;
+        this.coworkerComment = coworkerComment;
     }
 
-    public void setCustomerChatId(long customerChatId) {
-        this.customerChatId = customerChatId;
+    public Reservation() {
     }
 
-    public int getTable() {
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Long getChatId() {
+        return chatId;
+    }
+
+    public void setChatId(Long customerChatId) {
+        this.chatId = customerChatId;
+    }
+
+    public Integer getTable() {
         return table;
     }
 
-    public void setTable(int table) {
+    public void setTable(Integer table) {
         this.table = table;
     }
 
@@ -43,6 +75,22 @@ public class Reservation {
 
     public void setTime(String time) {
         this.time = time;
+    }
+
+    public Boolean getReservationConfirmed() {
+        return confirmed;
+    }
+
+    public void setReservationConfirmed(Boolean reservationConfirmed) {
+        this.confirmed = reservationConfirmed;
+    }
+
+    public String getCoworkerComment() {
+        return coworkerComment;
+    }
+
+    public void setCoworkerComment(String coworkerComment) {
+        this.coworkerComment = coworkerComment;
     }
 
     @Override

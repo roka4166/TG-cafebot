@@ -26,16 +26,14 @@ import java.util.regex.Pattern;
 public class TelegramBot extends TelegramLongPollingBot {
     private Map<Long, Boolean> expectingNameForReservationMap = new HashMap<>();
     private Map<Long, Boolean> expectingTimeForReservationMap = new HashMap<>();
-    private Map<Long, Boolean> expectingNameForPreorderMap = new HashMap<>();
-    private Map<Long, Boolean> expectingTimeForPreordernMap = new HashMap<>();
+    private Map<Long, Boolean> expectingTimeForPreorder = new HashMap<>();
+    private Map<Long, Boolean> expectingCommentFromCoworker = new HashMap<>();
 
-    private List<Reservation> reservations = new ArrayList<>();
 
     private KeyboardMarkup keyboardMarkup;
 
     private AdminPassowrdRepository adminPasswordRepository;
     private final BotConfig botConfig;
-    private Reservation reservation;
 
     private CoworkerRepository coworkerRepository;
 
@@ -46,12 +44,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private MenuItemRepository menuItemRepository;
 
     private CartRepository cartRepository;
+
+    private ReservationRepository reservationRepository;
     @Autowired
     public TelegramBot(Reservation reservation, BotConfig botConfig, KeyboardMarkup keyboardMarkup,
                        AdminPassowrdRepository adminPasswordRepository, ButtonRepository buttonRepository,
                        CoworkerRepository coworkerRepository, OrderRepository orderRepository,
-                       MenuItemRepository menuItemRepository, CartRepository cartRepository){
-        this.reservation = reservation;
+                       MenuItemRepository menuItemRepository, CartRepository cartRepository,
+                       ReservationRepository reservationRepository){
         this.botConfig = botConfig;
         this.keyboardMarkup = keyboardMarkup;
         this.adminPasswordRepository = adminPasswordRepository;
@@ -60,6 +60,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.orderRepository = orderRepository;
         this.menuItemRepository = menuItemRepository;
         this.cartRepository = cartRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     @Override
@@ -106,17 +107,36 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
             }
             if(expectingNameForReservationMap.containsKey(chatId) && expectingNameForReservationMap.get(chatId)) {
-                reservations.get(findReservationIndexByChatId(chatId)).setName(messageText);
+                Reservation reservation = findReservationByChatId(chatId);
+                reservation.setName(messageText);
+                reservationRepository.save(reservation);
                 sendMessage(chatId, "Теперь введите время");
                 expectingNameForReservationMap.put(chatId, false);
                 expectingTimeForReservationMap.put(chatId, true);
             }
 
             else if (expectingTimeForReservationMap.containsKey(chatId) && expectingTimeForReservationMap.get(chatId)) {
-                reservations.get(findReservationIndexByChatId(chatId)).setTime(messageText);
+                Reservation reservation = findReservationByChatId(chatId);
+                reservation.setTime(messageText);
+                reservationRepository.save(reservation);
                 sendMessage(chatId, getBookingConfirmationTextByChatId(chatId),
                         keyboardMarkup.getKeyboardMarkup(getButtons("bookingconfirmationmenu"), 2));
                 expectingTimeForReservationMap.put(chatId, false);
+            }
+
+            else if (expectingCommentFromCoworker.containsKey(getCoworkerChatId()) && expectingCommentFromCoworker.get(getCoworkerChatId())) {
+                Reservation reservation = findReservationByCommentExpectation();
+                reservation.setCoworkerComment(messageText);
+                reservationRepository.save(reservation);
+                sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась человеку");
+                String text = "Бронь откланена. Комментарий от сотрудника: " + reservation.getCoworkerComment();
+                sendMessage(reservation.getChatId(), text);
+                expectingCommentFromCoworker.put(getCoworkerChatId(), false);
+                deleteReservation(reservation);
+            }
+            if(expectingTimeForPreorder.containsKey(chatId) && expectingTimeForPreorder.get(chatId)) {
+
+                expectingTimeForPreorder.put(chatId, false);
             }
 
             else if (messageText.startsWith("/password")) {
@@ -156,7 +176,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             else if (callbackData.startsWith("TABLE_")){
                 int tableNumber = Integer.parseInt(callbackData.substring(6));
-                reservations.get(findReservationIndexByChatId(chatId)).setTable(tableNumber);
+                Reservation reservation = new Reservation();
+                reservation.setChatId(chatId);
+                reservation.setTable(tableNumber);
+                reservationRepository.save(reservation);
                 String text = "Вы выбрали стол " + tableNumber + " теперь нужно ввести имя на которое вы хотите" +
                         "забронировать столик.";
                 sendMessage(chatId, text);
@@ -174,6 +197,20 @@ public class TelegramBot extends TelegramLongPollingBot {
                 addToCart(chatId, callbackData);
                 sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
             }
+            else if(callbackData.startsWith("RESERVATION_CONFIRMED")){
+                Reservation reservation = findReservationById(callbackData);
+                String text = "Бронь стола подтверждена";
+                sendMessage(reservation.getChatId(), text);
+                deleteReservation(reservation);
+            }
+            else if(callbackData.startsWith("RESERVATION_DECLINED")){
+                Reservation reservation = findReservationById(callbackData);
+                reservation.setCoworkerComment("expecting");
+                reservationRepository.save(reservation);
+                String text = "Введите причину отказа брони";
+                sendMessage(getCoworkerChatId(), text);
+                expectingCommentFromCoworker.put(getCoworkerChatId(), true);
+            }
 
             switch (callbackData) {
                 case "START" ->
@@ -181,26 +218,21 @@ public class TelegramBot extends TelegramLongPollingBot {
                             keyboardMarkup.getKeyboardMarkup(getButtons("mainmenu"),  1));
 
                 case "RESERVATION" -> {
-                    reservation = new Reservation();
-                    reservation.setCustomerChatId(chatId);
-                    reservations.add(reservation);
                     String text = "Введите номер стола: ";
-                    sendMessage(chatId, text, keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("tablemenu")), 4));
+                    sendMessage(chatId, text,
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("tablemenu")), 4));
                 }
                 case "CONFIRMBOOKING" -> {
-                    String text = "Запрос на бронь отправлен нашему сотруднику, вы получите подтверждение как только " +
-                            "сотрудник подтвердит бронь";
-                    sendMessage(chatId, "Бронь стола отправлена нашему сотруднику");
-                    sendMessage(getCoworkerChatId(), reservation.toString(),
-                            createOneButton("Подтвердить бронь стола", "RESERVATION_CONFIRMED"));
+                    sendMessage(chatId, "Бронь стола отправлена нашему сотруднику," +
+                            "   если этот стол свободен на это время" +
+                            "то вы получите подтверждения что стол был забронирован успешно.");
+                    sendMessage(getCoworkerChatId(), findReservationByChatId(chatId).toString(),
+                            keyboardMarkup.getBookingConfirmationAdminMenu(getButtons("bookingconfirmationadminmenu"),
+                                    findReservationByChatId(chatId).getId()));
                 }
                 case "FOODMENU" ->
                     sendMessage(chatId, "Menu", keyboardMarkup.getKeyboardMarkup(getButtons("foodmenu"), 3));
 
-                case "RESERVATION_CONFIRMED" -> {
-                    String text = "Бронь стола подтверждена";
-                    sendMessage(chatId, text);
-                }
                 case "BREAKFASTS" ->
                     sendMessage(chatId, getMenuText(getItemsByMenuBelonging("breakfastmenu")),
                             keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("breakfastmenu")), 4));
@@ -277,6 +309,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("drinksadditionmenu")), 4));
 
                 case "GOTOPAYMENT" -> {
+                    
                     String text = "Для оплаты нужно перевести " + getTotalPriceOfCartByChatId(chatId) + " рублей на карту 1234 3456 " +
                             "2345 4556 или на телефон 9485749284 далее нажмите на кнопку олпачено и после этого" +
                             "информация попадет к нашему сотруднику";
@@ -524,16 +557,22 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 
     private String getBookingConfirmationTextByChatId(Long chatId){
-        Reservation reservaton = reservations.get(findReservationIndexByChatId(chatId));
+        Reservation reservaton = findReservationByChatId(chatId);
         return "Подтвердить бронь на имя " + reservaton.getName() + " .На время " + reservaton.getTime() + "?";
     }
 
-    private int findReservationIndexByChatId(Long chatId){
-        for (int i = 0; i < reservations.size(); i++) {
-            if(reservations.get(i).getCustomerChatId()==chatId){
-                return i;
-            }
-        }
-        return 0;
+    private Reservation findReservationByChatId(Long chatId){
+        return reservationRepository.findReservationByChatId(chatId);
+    }
+    private Reservation findReservationById(String callbackData){
+        int id = Integer.valueOf(callbackData.substring(21));
+        return reservationRepository.findById(id).orElse(null);
+    }
+    private Reservation findReservationByCommentExpectation(){
+        return reservationRepository.findReservationByCoworkerComment("expecting");
+    }
+    private void deleteReservation(Reservation reservation){
+        reservationRepository.delete(reservation);
+
     }
 }

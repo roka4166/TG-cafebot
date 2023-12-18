@@ -19,15 +19,26 @@ public class Order {
 
     @Column(name = "items")
     private String items;
+    @Column(name = "time")
+    private String time;
 
     public Order() {
     }
 
-    public Order(Integer id, Long chatId, Integer totalPrice, String items) {
+    public Order(Integer id, Long chatId, Integer totalPrice, String items, String time) {
         this.id = id;
         this.chatId = chatId;
         this.totalPrice = totalPrice;
         this.items = items;
+        this.time = time;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
     }
 
     public Integer getId() {

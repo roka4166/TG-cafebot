@@ -58,17 +58,6 @@ public class KeyboardMarkup {
     public InlineKeyboardMarkup getKeyboardMarkup(List<Button> buttons, int rowsPerLine){
         return createInlineKeyboardMarkup(buttons, rowsPerLine);
     }
-    public ReplyKeyboardMarkup getReplyKeyboardMarkup(){
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        List<KeyboardRow> rows = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();
-        row.add("Оплатить");
-        row.add("Корзина");
-        rows.add(row);
-        replyKeyboardMarkup.setKeyboard(rows);
-        return replyKeyboardMarkup;
-    }
     public InlineKeyboardMarkup getCartKeyBoardMarkup(List<MenuItem> items){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
@@ -109,5 +98,16 @@ public class KeyboardMarkup {
         rowsInLine.add(row);
         keyboardMarkup.setKeyboard(rowsInLine);
         return keyboardMarkup;
+    }
+    public InlineKeyboardMarkup getBookingConfirmationAdminMenu(List<Button> buttons, int reservationId){
+        for(Button button : buttons){
+            if (button.getCallbackData().startsWith("RESERVATION_CONFIRMED")){
+                button.setCallbackData("RESERVATION_CONFIRMED"+reservationId);
+            }
+            else if (button.getCallbackData().startsWith("RESERVATION_DECLINED")){
+                button.setCallbackData("RESERVATION_DECLINED"+" " + reservationId);
+            }
+        }
+        return createInlineKeyboardMarkup(buttons, 2);
     }
 }
