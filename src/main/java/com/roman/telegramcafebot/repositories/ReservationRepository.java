@@ -9,4 +9,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
     Reservation findReservationByChatId(Long chatId);
 
     Reservation findReservationByCoworkerComment(String startingWith);
+
+    void removeAllByChatId(Long chatId);
 }
