@@ -4,45 +4,15 @@ import jakarta.persistence.*;
 import org.springframework.stereotype.Component;
 
 @Component
-@Entity
-@Table(name = "reservation")
 public class Reservation {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Integer id;
-    @Column(name = "chat_id")
     private Long chatId;
-    @Column(name = "table_number")
     private Integer table;
-    @Column(name = "name")
     private String name;
-    @Column(name = "time")
     private String time;
-    @Column(name = "confirmed")
     private Boolean confirmed;
-    @Column(name = "comment")
     private String coworkerComment;
 
-    public Reservation(Integer id, Long customerChatId, Integer table, String name, String time, Boolean reservationConfirmed, String coworkerComment) {
-        this.id = id;
-        this.chatId = customerChatId;
-        this.table = table;
-        this.name = name;
-        this.time = time;
-        this.confirmed = reservationConfirmed;
-        this.coworkerComment = coworkerComment;
-    }
-
     public Reservation() {
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
     }
 
     public Long getChatId() {
@@ -75,14 +45,6 @@ public class Reservation {
 
     public void setTime(String time) {
         this.time = time;
-    }
-
-    public Boolean getReservationConfirmed() {
-        return confirmed;
-    }
-
-    public void setReservationConfirmed(Boolean reservationConfirmed) {
-        this.confirmed = reservationConfirmed;
     }
 
     public String getCoworkerComment() {

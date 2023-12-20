@@ -75,6 +75,6 @@ public class Order {
 
     @Override
     public String toString() {
-        return "Заказ номер #" + id + " на сумму " + totalPrice + " руб. Содержит : " + items + "Время : " + getTime();
+        return String.format("Заказ номер #%d на сумму %d руб. Содержит: %s. Время: %s", id, totalPrice, items, getTime());
     }
 }
