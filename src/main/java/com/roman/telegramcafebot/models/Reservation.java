@@ -6,10 +6,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class Reservation {
     private Long chatId;
-    private Integer table;
+    private String amountOfPeople;
     private String name;
     private String time;
-    private Boolean confirmed;
     private String coworkerComment;
 
     public Reservation() {
@@ -23,12 +22,12 @@ public class Reservation {
         this.chatId = customerChatId;
     }
 
-    public Integer getTable() {
-        return table;
+    public String getAmountOfPeople() {
+        return amountOfPeople;
     }
 
-    public void setTable(Integer table) {
-        this.table = table;
+    public void setAmountOfPeople(String amountOfPeople) {
+        this.amountOfPeople = amountOfPeople;
     }
 
     public String getName() {
@@ -57,6 +56,6 @@ public class Reservation {
 
     @Override
     public String toString() {
-        return "Бронь стола " + table + " на имя " + name + ". Время " + time;
+        return "Бронь стола. Количество человек" + amountOfPeople + " на имя " + name + ". Время " + time;
     }
 }

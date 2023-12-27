@@ -22,15 +22,6 @@ public class KeyboardMarkup {
     public KeyboardMarkup(ButtonRepository buttonRepository) {
         this.buttonRepository = buttonRepository;
     }
-    private List<Button> getButtons (String typeOfMenu, String itemName, String itemPrice){
-        List<Button> buttons = buttonRepository.findAllByBelongsToMenu(typeOfMenu);
-        for(Button button : buttons){
-            if (button.getCallbackData().equals("ADDTOCART")){
-                button.setCallbackData("ADDTOCART"+itemName+" "+itemPrice);
-            }
-        }
-        return buttons;
-    }
 
     private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons, int rowsPerLine){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();

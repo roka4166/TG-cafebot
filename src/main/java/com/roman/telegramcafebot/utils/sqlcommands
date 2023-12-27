@@ -367,3 +367,6 @@ create table reservation(
     confirmed boolean,
     comment varchar(500)
 )
+
+insert into button (name, belongs_to_menu, callbackdata) VALUES ('Меню', 'adminmainmenu', 'ADMINFOODMENU'),
+                                                                ('Убрать стоп', 'adminmainmenu', 'SHOWALLSTOPPED')

@@ -10,7 +10,7 @@ public class MenuItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Integer id;
     @Column(name = "name")
     private String name;
 
@@ -19,12 +19,27 @@ public class MenuItem {
 
     @Column(name = "belongs_to_menu")
     private String belongsToMenu;
+    @Column(name = "isstopped")
+    private Boolean isStopped;
 
-    public MenuItem(int id, String name, Integer price, String belongsToMenu) {
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Boolean getStopped() {
+        return isStopped;
+    }
+
+    public void setStopped(Boolean stopped) {
+        isStopped = stopped;
+    }
+
+    public MenuItem(int id, String name, Integer price, String belongsToMenu, Boolean isStopped) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.belongsToMenu = belongsToMenu;
+        this.isStopped = isStopped;
     }
 
     public MenuItem() {
