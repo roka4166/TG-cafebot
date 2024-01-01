@@ -24,18 +24,6 @@ import java.util.regex.Pattern;
 @Transactional
 @AllArgsConstructor
 public class TelegramBot extends TelegramLongPollingBot {
-    private static final String COMMAND_START = "/start";
-    private static final String COMMAND_ADMIN_OFF = "/adminoff";
-    private static final String COMMAND_ADMIN_ON = "/adminon";
-
-    private static final String COMMAND_PASSWORD = "/password";
-
-    private static final String COMMAND_DELETE_ITEM = "/deleteitem";
-    private static final String COMMAND_NEW_ITEM = "/newitem";
-
-    private static final String COMMAND_ADMIN = "/admin";
-
-    private static final String COMMAND_SHOWALLSTOPPED = "/showallstopped";
     private Map<Long, Boolean> expectingNameForReservationMap = new HashMap<>();
     private Map<Long, Boolean> expectingTimeForReservationMap = new HashMap<>();
     private Map<Long, Boolean> expectingTimeForPreorder = new HashMap<>();
@@ -60,6 +48,100 @@ public class TelegramBot extends TelegramLongPollingBot {
     private MenuItemRepository menuItemRepository;
 
     private CartRepository cartRepository;
+
+    enum MessageCommand{
+        COMMAND_START("/start"),
+        COMMAND_SHOWALLSTOPPED ("/showallstopped"),
+        COMMAND_ADMIN ("/admin"),
+        COMMAND_NEW_ITEM ("/newitem"),
+        COMMAND_DELETE_ITEM ("/deleteitem"),
+        COMMAND_PASSWORD ("/password"),
+        COMMAND_ADMIN_ON ("/adminon"),
+        COMMAND_ADMIN_OFF ("/adminoff");
+
+        private final String MessageCommand;
+
+        MessageCommand(String command) {
+            this.MessageCommand = command;
+        }
+
+        public String getMessageCommand() {
+            return this.MessageCommand;
+        }
+
+        public static MessageCommand fromMessageText(String commandText) {
+            for (MessageCommand command : TelegramBot.MessageCommand.values()) {
+                if (command.getMessageCommand().equals(commandText)) {
+                    return command;
+                }
+            }
+            return null;
+        }
+    }
+    public enum CallbackDataCommand {
+        SETSTOP("SETSTOP"),
+        DELETEITEM("DELETEITEM"),
+        PAYMENTCONFIRMEDBYCOWORKER("PAYMENTCONFIRMEDBYCOWORKER"),
+        RESERVATION_DECLINED("RESERVATION_DECLINED"),
+        RESERVATION_CONFIRMED("RESERVATION_CONFIRMED"),
+        ADDTOCART("ADDTOCART"),
+        STOPPEDITEM("STOPPEDITEM"),
+        ITEM("ITEM"),
+        REMOVEFROMCART("REMOVEFROMCART"),
+        AMOUNT("AMOUNT"),
+        TYPE("TYPE"),
+        SHOWALLSTOPPED("SHOWALLSTOPPED"),
+        ADMINFOODMENU("ADMINFOODMENU"),
+        REMOVEALLFROMCART("REMOVEALLFROMCART"),
+        SHOWCART("SHOWCART"),
+        PAYMENTCONFIRMEDBYCUSTOMER("PAYMENTCONFIRMEDBYCUSTOMER"),
+        GOTOPAYMENT("GOTOPAYMENT"),
+        DRINKSADDITION("DRINKSADDITION"),
+        NOTTEA("NOTTEA"),
+        SIGNATUREDRINKS("SIGNATUREDRINKS"),
+        CACAO("CACAO"),
+        COFFEE("COFFEE"),
+        TEA("TEA"),
+        BREAD("BREAD"),
+        PUFFPASTRY("PUFFPASTRY"),
+        DESERTS("DESSERTS"),
+        DRINKS("DRINKS"),
+        ADDITION("ADDITION"),
+        BRUSCHETTAS("BRUSCHETTAS"),
+        SANDWICHES("SANDWICHES"),
+        SALADS("SALADS"),
+        SOUPS("SOUPS"),
+        PIESCHUDU("PIESCHUDU"),
+        HOTFOOD("HOTFOOD"),
+        ROMANPIZZAS("ROMANPIZZAS"),
+        CROISSANTS("CROISSANTS"),
+        BREAKFASTS("BREAKFASTS"),
+        FOODMENU("FOODMENU"),
+        DECLINEPREORDERTIME("DECLINEPREORDERTIME"),
+        CONFIRMPREORDERTIME("CONFIRMPREORDERTIME"),
+        CONFIRMBOOKING("CONFIRMBOOKING"),
+        RESERVATION("RESERVATION"),
+        START("START");
+
+        private final String callbackDataCommand;
+
+        CallbackDataCommand(String command) {
+            this.callbackDataCommand = command;
+        }
+
+        public String getCallbackDataCommand() {
+            return callbackDataCommand;
+        }
+
+        public static CallbackDataCommand fromCallbackData(String commandText) {
+            for (CallbackDataCommand command : CallbackDataCommand.values()) {
+                if (command.getCallbackDataCommand().equals(commandText)) {
+                    return command;
+                }
+            }
+            return null;
+        }
+    }
 
 
     @Autowired
@@ -110,32 +192,25 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void handleMessage(Update update, String messageText, Long chatId){
-        switch (messageText) {
-            case COMMAND_START -> {
-                removeAllFromCart(chatId);
-                startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-            }
-            case COMMAND_ADMIN_OFF -> {
-                Coworker coworker = coworkerRepository.findCoworkerByChatId(chatId);
-                if(coworker != null){
-                    coworker.setActive(false);
-                    coworkerRepository.save(coworker);
-                }
-            }
-            case COMMAND_ADMIN_ON -> {
-                Coworker coworker = coworkerRepository.findCoworkerByChatId(chatId);
-                if(coworker != null){
-                    coworker.setActive(true);
-                    coworkerRepository.save(coworker);
-                }
-            }
-            case COMMAND_SHOWALLSTOPPED -> {
-                if(validateCoworker(chatId)){
-                    sendMessage(chatId,getMenuText(getAllStoppedMenuItems()));
-                }
-            }
+        MessageCommand messageCommand = MessageCommand.fromMessageText(messageText);
+        switch (messageCommand) {
+                case COMMAND_START:
+                    removeAllFromCart(chatId);
+                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                    break;
+                case COMMAND_ADMIN_OFF:
+                    updateCoworkerActivity(chatId, false);
+                    break;
+                case COMMAND_ADMIN_ON:
+                    updateCoworkerActivity(chatId, true);
+                    break;
+                case COMMAND_SHOWALLSTOPPED:
+                    if (validateCoworker(chatId)) {
+                        sendMessage(chatId, getMenuText(getAllStoppedMenuItems()));
+                    }
+                    break;
         }
-        if (messageText.startsWith(COMMAND_PASSWORD)) {
+        if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
             String password = messageText.substring(10);
             String passwordFromDB = Objects.requireNonNull(adminPasswordRepository.findById(1).orElse(null)).getKey();
             if(password.equals(passwordFromDB)){
@@ -175,7 +250,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage(chatId,"Подтвердить время" + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
         }
         }
-        else if (messageText.startsWith(COMMAND_ADMIN)) {
+        else if (messageText.startsWith(MessageCommand.COMMAND_ADMIN.MessageCommand)) {
             if(validateCoworker(chatId)){
                 sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
             }
@@ -183,7 +258,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, "Нет доступа к функции");
             }
         }
-        else if (messageText.startsWith(COMMAND_NEW_ITEM)){
+        else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())){
             if(validateCoworker(chatId)){
                 createMenuItem(messageText);
                 sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
@@ -191,7 +266,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
         }
-        else if (messageText.startsWith(COMMAND_DELETE_ITEM)){
+        else if (messageText.startsWith(MessageCommand.COMMAND_DELETE_ITEM.getMessageCommand())){
             if(validateCoworker(chatId)){
                 deleteMenuItem(messageText);
                 sendMessage(chatId, "Удалено успешно", getGoToMenuButton());
@@ -242,6 +317,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             return true;
         }
         return false;
+    }
+
+    private void updateCoworkerActivity(Long chatId, boolean active) {
+        Coworker coworker = coworkerRepository.findCoworkerByChatId(chatId);
+        if (coworker != null) {
+            coworker.setActive(active);
+            coworkerRepository.save(coworker);
+        }
     }
 
     private void handleCallbackQuery(Update update){
