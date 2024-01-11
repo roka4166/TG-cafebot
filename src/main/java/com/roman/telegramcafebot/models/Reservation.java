@@ -56,6 +56,6 @@ public class Reservation {
 
     @Override
     public String toString() {
-        return "Бронь стола. Количество человек" + amountOfPeople + " на имя " + name + ". Время " + time;
+        return "Бронь стола. Количество человек " + amountOfPeople + " на имя " + name + ". Время " + time;
     }
 }

@@ -21,8 +21,10 @@ public enum MessageCommand {
     }
 
     public static MessageCommand fromMessageText(String commandText) {
+        String[] parts = commandText.split("\\s+", 2);
+
         for (MessageCommand command : MessageCommand.values()) {
-            if (command.getMessageCommand().equals(commandText)) {
+            if (commandText.startsWith(command.messageCommand)) {
                 return command;
             }
         }

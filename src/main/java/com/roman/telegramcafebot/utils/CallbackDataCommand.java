@@ -56,7 +56,7 @@ public enum CallbackDataCommand {
 
     public static CallbackDataCommand fromCallbackData(String commandText) {
         for (CallbackDataCommand command : CallbackDataCommand.values()) {
-            if (command.getCallbackDataCommand().equals(commandText)) {
+            if (commandText.startsWith(command.callbackDataCommand)) {
                 return command;
             }
         }

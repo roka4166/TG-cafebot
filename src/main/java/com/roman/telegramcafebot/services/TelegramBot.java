@@ -100,88 +100,86 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void handleMessage(Update update, String messageText, Long chatId){
-        MessageCommand messageCommand = MessageCommand.fromMessageText(messageText);
-        switch (messageCommand) {
-                case COMMAND_START:
-                    removeAllFromCart(chatId);
-                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                    break;
-                case COMMAND_ADMIN_OFF:
-                    updateCoworkerActivity(chatId, false);
-                    break;
-                case COMMAND_ADMIN_ON:
-                    updateCoworkerActivity(chatId, true);
-                    break;
-                case COMMAND_SHOWALLSTOPPED:
-                    if (validateCoworker(chatId)) {
-                        sendMessage(chatId, getMenuText(getAllStoppedMenuItems()));
+            MessageCommand messageCommand = MessageCommand.fromMessageText(messageText);
+            if(messageCommand!=null){
+                switch (messageCommand) {
+                    case COMMAND_START:
+                        removeAllFromCart(chatId);
+                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                        break;
+                    case COMMAND_ADMIN_OFF:
+                        updateCoworkerActivity(chatId, false);
+                        break;
+                    case COMMAND_ADMIN_ON:
+                        updateCoworkerActivity(chatId, true);
+                        break;
+                    case COMMAND_SHOWALLSTOPPED:
+                        if (validateCoworker(chatId)) {
+                            sendMessage(chatId, getMenuText(getAllStoppedMenuItems()));
+                        }
+                        break;
+                }
+                if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
+                    String password = messageText.substring(10);
+                    String passwordFromDB = Objects.requireNonNull(adminPasswordRepository.findById(1).orElse(null)).getKey();
+                    if (password.equals(passwordFromDB)) {
+                        Coworker coworker = new Coworker();
+                        coworker.setChatId(chatId);
+                        coworker.setActive(true);
+                        coworkerRepository.save(coworker);
+                        sendMessage(chatId, "Ключ активирован");
                     }
-                    break;
-        }
-        if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
-            String password = messageText.substring(10);
-            String passwordFromDB = Objects.requireNonNull(adminPasswordRepository.findById(1).orElse(null)).getKey();
-            if(password.equals(passwordFromDB)){
-                Coworker coworker = new Coworker();
-                coworker.setChatId(chatId);
-                coworker.setActive(true);
-                coworkerRepository.save(coworker);
-                sendMessage(chatId, "Ключ активирован");
+                } else if (messageText.startsWith(MessageCommand.COMMAND_ADMIN.getMessageCommand())) {
+                    if (validateCoworker(chatId)) {
+                        sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
+                    } else {
+                        sendMessage(chatId, "Нет доступа к функции");
+                    }
+                }
+                else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())) {
+                    if (validateCoworker(chatId)) {
+                        createMenuItem(messageText);
+                        sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
+                                keyboardMarkup.getKeyboardMarkup(getButtons("adminmenu"), 3));
+                    } else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
+                }
+                else if (messageText.startsWith(MessageCommand.COMMAND_DELETE_ITEM.getMessageCommand())) {
+                    if (validateCoworker(chatId)) {
+                        deleteMenuItem(messageText);
+                        sendMessage(chatId, "Удалено успешно", getGoToMenuButton());
+                    } else sendMessage(chatId, "Не удалено, у вас нет доступа к этой функции");
+                }
             }
-        else if(expectingNameForReservationMap.containsKey(chatId) && expectingNameForReservationMap.get(chatId)) {
-            Reservation reservation = findReservationByChatId(chatId);
-            reservation.setName(messageText);
-            sendMessage(chatId, "Теперь введите время");
-            expectingNameForReservationMap.put(chatId, false);
-            expectingTimeForReservationMap.put(chatId, true);
-        }
+                if(expectingNameForReservationMap.containsKey(chatId) && expectingNameForReservationMap.get(chatId)) {
+                    Reservation reservation = findReservationByChatId(chatId);
+                    reservation.setName(messageText);
+                    sendMessage(chatId, "Теперь введите время");
+                    expectingNameForReservationMap.put(chatId, false);
+                    expectingTimeForReservationMap.put(chatId, true);
+                }
 
-        else if (expectingTimeForReservationMap.containsKey(chatId) && expectingTimeForReservationMap.get(chatId)) {
-            Reservation reservation = findReservationByChatId(chatId);
-            reservation.setTime(messageText);
-            sendMessage(chatId, getBookingConfirmationTextByChatId(chatId),
-                    keyboardMarkup.getKeyboardMarkup(getButtons("bookingconfirmationmenu"), 2));
-            expectingTimeForReservationMap.put(chatId, false);
-        }
+                else if (expectingTimeForReservationMap.containsKey(chatId) && expectingTimeForReservationMap.get(chatId)) {
+                    Reservation reservation = findReservationByChatId(chatId);
+                    reservation.setTime(messageText);
+                    sendMessage(chatId, getBookingConfirmationTextByChatId(chatId),
+                            keyboardMarkup.getKeyboardMarkup(getButtons("bookingconfirmationmenu"), 2));
+                    expectingTimeForReservationMap.put(chatId, false);
+                }
 
-        else if (expectingCommentFromCoworker.containsKey(getCoworkerChatId()) && expectingCommentFromCoworker.get(getCoworkerChatId())) {
-            Reservation reservation = findReservationByCommentExpectation();
-            reservation.setCoworkerComment(messageText);
-            sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась человеку");
-            String text = String.format("Бронь отклонена. Комментарий от сотрудника: %s", reservation.getCoworkerComment());
-            sendMessage(reservation.getChatId(), text);
-            expectingCommentFromCoworker.put(getCoworkerChatId(), false);
-            deleteReservation(reservation);
+                else if (expectingCommentFromCoworker.containsKey(getCoworkerChatId()) && expectingCommentFromCoworker.get(getCoworkerChatId())) {
+                    Reservation reservation = findReservationByCommentExpectation();
+                    reservation.setCoworkerComment(messageText);
+                    sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась человеку");
+                    String text = String.format("Бронь отклонена. Комментарий от сотрудника: %s", reservation.getCoworkerComment());
+                    sendMessage(reservation.getChatId(), text);
+                    expectingCommentFromCoworker.put(getCoworkerChatId(), false);
+                    deleteReservation(reservation);
+                }
+                else if(expectingTimeForPreorder.containsKey(chatId) && expectingTimeForPreorder.get(chatId)) {
+                    orderTime.put(chatId, messageText);
+                    sendMessage(chatId,"Подтвердить время" + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
+                }
         }
-        else if(expectingTimeForPreorder.containsKey(chatId) && expectingTimeForPreorder.get(chatId)) {
-            orderTime.put(chatId, messageText);
-            sendMessage(chatId,"Подтвердить время" + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
-        }
-        }
-        else if (messageText.startsWith(MessageCommand.COMMAND_ADMIN.getMessageCommand())) {
-            if(validateCoworker(chatId)){
-                sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
-            }
-            else {
-                sendMessage(chatId, "Нет доступа к функции");
-            }
-        }
-        else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())){
-            if(validateCoworker(chatId)){
-                createMenuItem(messageText);
-                sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
-                        keyboardMarkup.getKeyboardMarkup(getButtons("adminmenu"), 3));
-            }
-            else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
-        }
-        else if (messageText.startsWith(MessageCommand.COMMAND_DELETE_ITEM.getMessageCommand())){
-            if(validateCoworker(chatId)){
-                deleteMenuItem(messageText);
-                sendMessage(chatId, "Удалено успешно", getGoToMenuButton());
-            }
-            else sendMessage(chatId, "Не удалено, у вас нет доступа к этой функции");
-        }
-    }
 
     private List<MenuItem> getAllStoppedMenuItems() {
         return menuItemRepository.findAllByIsStoppedTrue();
@@ -678,6 +676,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         menuItem.setName(menuItemName);
         menuItem.setPrice(menuItemsPrice);
         menuItem.setBelongsToMenu("unknown");
+        menuItem.setStopped(false);
         menuItemRepository.save(menuItem);
     }
 
