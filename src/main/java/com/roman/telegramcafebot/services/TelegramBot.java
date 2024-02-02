@@ -112,7 +112,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 switch (messageCommand) {
                     case COMMAND_START -> {
                         removeAllFromCart(chatId);
-                        sendMessage(chatId, "Im alive!!");
                         startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     }
                     case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
