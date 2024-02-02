@@ -1,4 +1,5 @@
 HELP.md
+src/main/resources
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -47,3 +48,4 @@ buildNumber.properties
 # Eclipse Core
 # JDT-specific (Eclipse Java Development Tools)
 
+/src/main/resources/

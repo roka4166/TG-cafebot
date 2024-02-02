@@ -6,6 +6,7 @@ import com.roman.telegramcafebot.repositories.*;
 import com.roman.telegramcafebot.utils.*;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-//@Slf4j
+@Slf4j
 @Service
 @Transactional
 @AllArgsConstructor
@@ -84,14 +85,20 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if(update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
-            handleMessage(update, messageText, chatId);
-        }
-        else if (update.hasCallbackQuery()) {
-            handleCallbackQuery(update);
-        }
+            if(update.hasMessage() && update.getMessage().hasText()) {
+                String messageText = update.getMessage().getText();
+                long chatId = update.getMessage().getChatId();
+                handleMessage(update, messageText, chatId);
+
+            }
+            else if (update.hasCallbackQuery()) {
+                long chatId = update.getCallbackQuery().getMessage().getChatId();
+                if(isAnyCoworkerActive()){
+                    handleCallbackQuery(update);
+                }
+                else
+                    sendMessage(chatId, "В данный момент бот не активен");
+            }
     }
 
     @Override
@@ -103,21 +110,18 @@ public class TelegramBot extends TelegramLongPollingBot {
             MessageCommand messageCommand = MessageCommand.fromMessageText(messageText);
             if(messageCommand!=null){
                 switch (messageCommand) {
-                    case COMMAND_START:
+                    case COMMAND_START -> {
                         removeAllFromCart(chatId);
+                        sendMessage(chatId, "Im alive!!");
                         startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                        break;
-                    case COMMAND_ADMIN_OFF:
-                        updateCoworkerActivity(chatId, false);
-                        break;
-                    case COMMAND_ADMIN_ON:
-                        updateCoworkerActivity(chatId, true);
-                        break;
-                    case COMMAND_SHOWALLSTOPPED:
+                    }
+                    case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
+                    case COMMAND_ADMIN_ON -> updateCoworkerActivity(chatId, true);
+                    case COMMAND_SHOWALLSTOPPED -> {
                         if (validateCoworker(chatId)) {
                             sendMessage(chatId, getMenuText(getAllStoppedMenuItems()));
                         }
-                        break;
+                    }
                 }
                 if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
                     String password = messageText.substring(10);
@@ -169,7 +173,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 else if (expectingCommentFromCoworker.containsKey(getCoworkerChatId()) && expectingCommentFromCoworker.get(getCoworkerChatId())) {
                     Reservation reservation = findReservationByCommentExpectation();
                     reservation.setCoworkerComment(messageText);
-                    sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась человеку");
+                    sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась клиенту");
                     String text = String.format("Бронь отклонена. Комментарий от сотрудника: %s", reservation.getCoworkerComment());
                     sendMessage(reservation.getChatId(), text);
                     expectingCommentFromCoworker.put(getCoworkerChatId(), false);
@@ -186,23 +190,18 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void stopMenuItem(String callbackData) {
-        try {
-            int menuItemId = Integer.parseInt(callbackData.substring(7));
-            MenuItem menuItem = menuItemRepository.findById(menuItemId).orElse(null);
-            if(menuItem != null){
-                String belongsToMenu = menuItem.getBelongsToMenu();
-                menuItem.setStopped(true);
-                menuItem.setBelongsToMenu("STOPPED");
-                menuItemRepository.save(menuItem);
-
-                Button button = buttonRepository.findButtonByCallbackData("ITEM"+menuItem.getId());
-                button.setBelongsToMenu("STOPPED"+belongsToMenu);
-                button.setCallbackData("STOPPEDITEM"+menuItemId);
-                buttonRepository.save(button);
+        int menuItemId = Integer.parseInt(callbackData.substring(7));
+        MenuItem menuItem = menuItemRepository.findById(menuItemId).orElse(null);
+        if(menuItem != null){
+            String belongsToMenu = menuItem.getBelongsToMenu();
+            menuItem.setStopped(true);
+            menuItem.setBelongsToMenu("STOPPED");
+            menuItemRepository.save(menuItem);
+            Button button = buttonRepository.findButtonByCallbackData("ITEM"+menuItem.getId());
+            button.setBelongsToMenu("STOPPED"+belongsToMenu);
+            button.setCallbackData("STOPPEDITEM"+menuItemId);
+            buttonRepository.save(button);
             }
-        }
-        catch (Exception e){
-        }
     }
     private boolean unstopMenuItem(String callbackData) {
         int menuItemId = Integer.parseInt(callbackData.substring(11));
@@ -288,7 +287,6 @@ public class TelegramBot extends TelegramLongPollingBot {
            }
            catch (Exception e){
                sendMessage(getCoworkerChatId(), "Нет брони");
-               //TODO
            }
         }
         else if(callbackData.startsWith(CallbackDataCommand.RESERVATION_DECLINED.getCallbackDataCommand())){
@@ -541,8 +539,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         return coworker != null;
     }
     private Long getCoworkerChatId(){
-        Coworker coworker = coworkerRepository.findCoworkerByIsActive(true);
-        return coworker.getChatId();
+        Coworker coworker = coworkerRepository.findCoworkerByIsActiveTrue();
+        if(coworker != null){
+            return coworker.getChatId();
+        }
+        return null;
     }
     private String getMenuText(List<MenuItem> items){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenu(items.get(0).getBelongsToMenu());
@@ -762,5 +763,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
     private void removeAllReserVationsByChatId(Long chatId){
         reservations.removeIf(reservation -> Objects.equals(reservation.getChatId(), chatId));
+    }
+    private boolean isAnyCoworkerActive(){
+        Coworker coworker = coworkerRepository.findCoworkerByIsActiveTrue();
+        return coworker != null;
     }
 }
