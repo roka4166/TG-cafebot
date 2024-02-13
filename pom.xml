@@ -14,10 +14,6 @@
 	<groupId>com.roman</groupId>
 	<artifactId>telegram-cafe-bot</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<organization>
-		<name>roka4166</name>
-		<url>https://amigoscode.com</url>
-	</organization>
 
 	<name>telegram-cafe-bot</name>
 	<description>Demo project for Spring Boot</description>
@@ -108,21 +104,7 @@
 				<artifactId>jib-maven-plugin</artifactId>
 				<version>3.3.1</version>
 				<configuration>
-					<from>
-						<image>eclipse-temurin:17</image>
-						<platforms>
-							<platform>
-								<architecture>amd64</architecture>
-								<os>linux</os>
-							</platform>
-						</platforms>
-					</from>
-					<to>
-						<image>docker.io/${docker.username}/${project.artifactId}:${project.version}</image>
-						<tags>
-							<tag>latest</tag>
-						</tags>
-					</to>
+
 				</configuration>
 			</plugin>
 		</plugins>
