@@ -114,6 +114,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                         removeAllFromCart(chatId);
                         startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     }
+                    case COMMAND_ADMIN -> {
+                        if (validateCoworker(chatId)) {
+                            sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
+                        } else {
+                            sendMessage(chatId, "Нет доступа к функции");
+                        }
+                    }
                     case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
                     case COMMAND_ADMIN_ON -> updateCoworkerActivity(chatId, true);
                     case COMMAND_SHOWALLSTOPPED -> {
@@ -131,12 +138,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                         coworker.setActive(true);
                         coworkerRepository.save(coworker);
                         sendMessage(chatId, "Ключ активирован");
-                    }
-                } else if (messageText.startsWith(MessageCommand.COMMAND_ADMIN.getMessageCommand())) {
-                    if (validateCoworker(chatId)) {
-                        sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
-                    } else {
-                        sendMessage(chatId, "Нет доступа к функции");
                     }
                 }
                 else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())) {
