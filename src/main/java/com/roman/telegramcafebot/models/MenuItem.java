@@ -22,6 +22,10 @@ public class MenuItem {
     @Column(name = "isstopped")
     private Boolean isStopped;
 
+
+    @Transient
+    private int quantity;
+
     public void setId(Integer id) {
         this.id = id;
     }

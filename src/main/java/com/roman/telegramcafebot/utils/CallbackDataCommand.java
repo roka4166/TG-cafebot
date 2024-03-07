@@ -42,7 +42,9 @@ public enum CallbackDataCommand {
     CONFIRMPREORDERTIME("CONFIRMPREORDERTIME"),
     CONFIRMBOOKING("CONFIRMBOOKING"),
     RESERVATION("RESERVATION"),
-    START("START");
+    QUANTITY("quantity"),
+    START("START"),
+    CONFIRMADDTOCART("CONFIRMADDTOCART");
 
     private final String callbackDataCommand;
 

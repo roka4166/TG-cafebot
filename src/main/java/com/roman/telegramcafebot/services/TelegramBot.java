@@ -37,7 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private KeyboardMarkup keyboardMarkup;
 
-    private AdminPassowrdRepository adminPasswordRepository;
+    private AdminPasswordRepository adminPasswordRepository;
     private final BotConfig botConfig;
 
     private CoworkerRepository coworkerRepository;
@@ -55,7 +55,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(BotConfig botConfig, KeyboardMarkup keyboardMarkup,
-                       AdminPassowrdRepository adminPasswordRepository, ButtonRepository buttonRepository,
+                       AdminPasswordRepository adminPasswordRepository, ButtonRepository buttonRepository,
                        CoworkerRepository coworkerRepository, OrderRepository orderRepository,
                        MenuItemRepository menuItemRepository, CartRepository cartRepository){
         this.botConfig = botConfig;
@@ -93,11 +93,12 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             else if (update.hasCallbackQuery()) {
                 long chatId = update.getCallbackQuery().getMessage().getChatId();
-                if(isAnyCoworkerActive()){
+//                if(isAnyCoworkerActive()){
                     handleCallbackQuery(update);
-                }
-                else
-                    sendMessage(chatId, "В данный момент бот не активен");
+//                }
+
+//                else
+//                    sendMessage(chatId, "В данный момент бот не активен");
             }
     }
 
@@ -114,6 +115,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                         removeAllFromCart(chatId);
                         startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     }
+                    case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
+                    case COMMAND_ADMIN_ON -> updateCoworkerActivity(chatId, true);
                     case COMMAND_ADMIN -> {
                         if (validateCoworker(chatId)) {
                             sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
@@ -121,23 +124,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                             sendMessage(chatId, "Нет доступа к функции");
                         }
                     }
-                    case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
-                    case COMMAND_ADMIN_ON -> updateCoworkerActivity(chatId, true);
-                    case COMMAND_SHOWALLSTOPPED -> {
-                        if (validateCoworker(chatId)) {
-                            sendMessage(chatId, getMenuText(getAllStoppedMenuItems()));
-                        }
-                    }
                 }
                 if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
                     String password = messageText.substring(10);
-                    String passwordFromDB = Objects.requireNonNull(adminPasswordRepository.findById(1).orElse(null)).getKey();
+                    String passwordFromDB = adminPasswordRepository.findById(1).orElse(null).getKey();
                     if (password.equals(passwordFromDB)) {
                         Coworker coworker = new Coworker();
                         coworker.setChatId(chatId);
                         coworker.setActive(true);
                         coworkerRepository.save(coworker);
-                        sendMessage(chatId, "Ключ активирован");
+                        sendMessage(chatId, "Бот активен");
+                    }
+                    else {
+                        sendMessage(chatId, "Пароль неверный");
                     }
                 }
                 else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())) {
@@ -146,12 +145,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
                                 keyboardMarkup.getKeyboardMarkup(getButtons("adminmenu"), 3));
                     } else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
-                }
-                else if (messageText.startsWith(MessageCommand.COMMAND_DELETE_ITEM.getMessageCommand())) {
-                    if (validateCoworker(chatId)) {
-                        deleteMenuItem(messageText);
-                        sendMessage(chatId, "Удалено успешно", getGoToMenuButton());
-                    } else sendMessage(chatId, "Не удалено, у вас нет доступа к этой функции");
                 }
             }
                 if(expectingNameForReservationMap.containsKey(chatId) && expectingNameForReservationMap.get(chatId)) {
@@ -181,13 +174,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 else if(expectingTimeForPreorder.containsKey(chatId) && expectingTimeForPreorder.get(chatId)) {
                     orderTime.put(chatId, messageText);
-                    sendMessage(chatId,"Подтвердить время" + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
+                    sendMessage(chatId,"Подтвердить время " + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
                 }
         }
-
-    private List<MenuItem> getAllStoppedMenuItems() {
-        return menuItemRepository.findAllByIsStoppedTrue();
-    }
 
     private void stopMenuItem(String callbackData) {
         int menuItemId = Integer.parseInt(callbackData.substring(7));
@@ -226,7 +215,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (coworker != null) {
             coworker.setActive(active);
             coworkerRepository.save(coworker);
+            if(active){
+                sendMessage(chatId, "Уведомления включены");
+            }
+            else {
+                sendMessage(chatId, "Уведомления отключены");
+            }
         }
+
     }
 
     private void handleCallbackQuery(Update update){
@@ -274,7 +270,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         else if(callbackData.startsWith(CallbackDataCommand.ADDTOCART.getCallbackDataCommand())){
             addToCart(chatId, callbackData);
-            sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
+            String menuBelonging = getMenuBelonging(callbackData);
+            if(menuBelonging.equals("coffemenu")){
+                sendMessage(chatId, "Добавлено успешно! Хотите что то добавить в ваше кофе? \n" +
+                                getMenuText(getItemsByMenuBelonging("coffeadditionmenu")),
+                        keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("coffeadditionmenu")), 3));
+            }
+            else if(menuBelonging.equals("teamenu")){
+                sendMessage(chatId, "Добавлено успешно! Хотите что то добавить в ваш чай? \n" +
+                                getMenuText(getItemsByMenuBelonging("teaadditionmenu")),
+                        keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("teaadditionmenu")), 3));
+            }
+            else
+                sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
         }
         else if(callbackData.startsWith(CallbackDataCommand.RESERVATION_CONFIRMED.getCallbackDataCommand())){
            try {
@@ -347,9 +355,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 reservations.indexOf(findReservationByChatId(chatId))));
             }
             case CONFIRMPREORDERTIME -> {
-                String text = String.format("Для оплаты нужно перевести %d рублей на карту 1234 3456 2345 4556" +
-                        " или на телефон 9485749284. Далее нажмите на кнопку 'Оплачено'," +
-                        " и после этого информация попадет к нашему сотруднику", getTotalPriceOfCartByChatId(chatId));
+                Order order = createOrder(chatId);
+                String text = String.format("Ваш заказ номер %d. Укажите этот номер при оплате. " +
+                        "Для оплаты нужно перевести %d рублей на карту 1234 3456 2345 4556" +
+                        " или на телефон 9485749284. Далее нажмите на кнопку 'Подтвердить'," +
+                        " и после этого информация попадет к нашему сотруднику", order.getId(), order.getTotalPrice());
                 sendMessage(chatId, text, createOneButton("Подтвердить", "PAYMENTCONFIRMEDBYCUSTOMER"));
                 expectingTimeForPreorder.put(chatId, false);
             }
@@ -362,42 +372,42 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             case BREAKFASTS ->
                     sendMessage(chatId, getMenuText(getItemsByMenuBelonging("breakfastmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("breakfastmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("breakfastmenu")), 3));
 
             case CROISSANTS ->
                     sendMessage(chatId, getMenuText(getItemsByMenuBelonging("croissantmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("croissantmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("croissantmenu")), 3));
 
             case ROMANPIZZAS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("romanpizzamenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("romanpizzamenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("romanpizzamenu")), 3));
 
             case HOTFOOD ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("hotfoodmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("hotfoodmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("hotfoodmenu")), 3));
 
             case PIESCHUDU ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("pieschudumenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("pieschudumenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("pieschudumenu")), 1));
 
             case SOUPS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("soupmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("soupmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("soupmenu")), 3));
 
             case SALADS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("saladmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("saladmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("saladmenu")), 3));
 
             case SANDWICHES ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("sandwichmenu")), keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("sandwichmenu")), 4));
 
             case BRUSCHETTAS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("bruschettamenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("bruschettamenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("bruschettamenu")), 3));
 
             case ADDITION ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("additionmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("additionmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("additionmenu")), 3));
 
             case DRINKS ->
                     sendMessage(chatId,"Напитки",
@@ -405,50 +415,50 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             case DESERTS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("desertmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("desertmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("desertmenu")), 3));
             case PUFFPASTRY ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("puffpastrymenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("puffpastrymenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("puffpastrymenu")), 3));
 
             case BREAD ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("breadmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("breadmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("breadmenu")), 3));
 
             case TEA ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("teamenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("teamenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("teamenu")), 3));
 
             case COFFEE ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("coffemenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("coffemenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("coffemenu")), 3));
 
             case CACAO ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("cacaomenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("cacaomenu")),4 ));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("cacaomenu")),3 ));
 
             case SIGNATUREDRINKS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("signaturedrinksmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("signaturedrinksmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("signaturedrinksmenu")), 3));
 
             case NOTTEA ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("notteamenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("notteamenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("notteamenu")), 3));
 
             case DRINKSADDITION ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("drinksadditionmenu")),
-                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("drinksadditionmenu")), 4));
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("drinksadditionmenu")), 3));
 
             case GOTOPAYMENT -> {
                 expectingTimeForPreorder.put(chatId, true);
                 sendMessage(chatId,"Введите время в которое вы хотите забрать заказ");
             }
             case PAYMENTCONFIRMEDBYCUSTOMER -> {
-                Order order = createOrder(chatId);
+                int orderId = getOrderIdByChatId(chatId);
                 sendMessage(chatId, String.format("Благодарим за покупку. Ваш заказ номер %d был принят." +
-                        " Укажите этот номер когда будете забирать заказ.", order.getId()));
+                        " Укажите этот номер когда будете забирать заказ.", orderId));
                 Long coworkerChatId = getCoworkerChatId();
-                sendMessage(coworkerChatId, order + ". Нажмите подтвердить что бы подтвердить оплату",
-                        createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+order.getId()));
+                sendMessage(coworkerChatId, "Заказ номер:" + orderId + ". Нажмите подтвердить что бы подтвердить оплату",
+                        createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+orderId));
             }
             case SHOWCART -> {
                 if(checkIfCartIsEmpty(chatId)){
@@ -463,20 +473,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                 removeAllFromCart(chatId);
                 sendMessage(chatId, "Корзина очищина", getGoToMenuButton());
             }
-            case ADMINFOODMENU -> {
-                sendMessage(chatId, "Меню",
-                        keyboardMarkup.getKeyboardMarkup(getAdminFoodMenuButtons("foodmenu"), 3));
-            }
-            case SHOWALLSTOPPED -> {
-                showAllStoppedItems(chatId);
-            }
+            case ADMINFOODMENU -> sendMessage(chatId, "Меню",
+                    keyboardMarkup.getKeyboardMarkup(getAdminFoodMenuButtons("foodmenu"), 3));
+            case SHOWALLSTOPPED -> showAllStoppedItems(chatId);
         }
     }
 
     private void showAllStoppedItems(long chatId) {
         List<MenuItem> stoppedItems = menuItemRepository.findAllByIsStoppedTrue();
         sendMessage(chatId, getMenuTextForStoppedItems(stoppedItems),
-                keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("STOPPED")), 4));
+                keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("STOPPED")), 3));
     }
 
 
@@ -548,10 +554,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String getMenuText(List<MenuItem> items){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenu(items.get(0).getBelongsToMenu());
         StringBuilder menuText = new StringBuilder();
-        for (int i = 0; i < items.size(); i++) {
-            buttons.get(i).setName(String.valueOf(i+1));
-            buttons.get(i).setCallbackData("ITEM"+items.get(i).getId());
+        int i = 0;
+        for (Button button : buttons) {
+            if(button.getCallbackData().equals("FOODMENU")){
+                continue;
+            }
+            button.setName(String.valueOf(i+1));
+            button.setCallbackData("ITEM"+items.get(i).getId());
             menuText.append(i+1).append(". ").append(items.get(i).getName()).append(" ").append(items.get(i).getPrice()).append(" руб.").append("\n");
+            i += 1;
         }
         return menuText.toString();
     }
@@ -575,19 +586,23 @@ public class TelegramBot extends TelegramLongPollingBot {
         menuText.append(cartMenuText);
         int sum = 0;
         for (int i = 0; i < items.size(); i++) {
-            menuText.append(i+1).append(". ").append(items.get(i).getName()).append(" ").append(items.get(i).getPrice()).append(" руб.").append("\n");
-            sum += items.get(i).getPrice();
+            menuText.append(i+1).append(". ").append(items.get(i).getName()).append(" ")
+                    .append((items.get(i).getPrice())).append(" руб. ")
+                    .append("\n");
+            sum += (items.get(i).getPrice());
         }
         String infoAboutSum = String.format("\nСумма корзины %d", sum);
         menuText.append(infoAboutSum);
         return menuText.toString();
     }
     private List<Button> sortButtonsByName(List<Button> buttonsToSort){
-        buttonsToSort.sort((button1, button2) -> {
-            int number1 = Integer.parseInt(button1.getName());
-            int number2 = Integer.parseInt(button2.getName());
-            return Integer.compare(number1, number2);
-        });
+        buttonsToSort.sort(Comparator.comparing(button -> {
+            try {
+                return Integer.parseInt(button.getName());
+            } catch (NumberFormatException e) {
+                return Integer.MAX_VALUE;
+            }
+        }));
         return buttonsToSort;
     }
     private List<MenuItem> getItemsByMenuBelonging(String belongsToMenu){
@@ -599,12 +614,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private List<Button> getAdminFoodMenuButtons (String typeOfMenu){
         return buttonRepository.findAllByBelongsToMenu(typeOfMenu);
     }
-    private List<Button> getConfirmationButtons (String callbackDataWithId){
-        String id = callbackDataWithId.substring(4);
+    private List<Button> getConfirmationButtons (String callbackData){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenu("confirmationmenu");
         for (Button button1 : buttons){
             if(button1.getCallbackData().startsWith("ADDTOCART")){
-                button1.setCallbackData("ADDTOCART"+id);
+                button1.setCallbackData("ADDTOCART"+callbackData);
             }
         }
         return buttons;
@@ -626,11 +640,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String createConfirmationText(MenuItem item){
         return String.format("Вы выбрали %s. Цена %d руб.", item.getName(), item.getPrice());
     }
-    private MenuItem findItemById(String id){
-        return menuItemRepository.findById(Integer.valueOf(id.substring(4))).orElse(null);
+    private MenuItem findItemById(String callbackData){
+        return menuItemRepository.findById(Integer.valueOf(callbackData.substring(4))).orElse(null);
     }
     private void addToCart(Long chatId, String callbackData){
-        int menuItemId = Integer.parseInt(callbackData.substring(9));
+        int menuItemId = Integer.parseInt(callbackData.substring(13));
         Cart cart = new Cart();
         cart.setChatId(chatId);
         cart.setItemsId(menuItemId);
@@ -639,20 +653,85 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
     private Order createOrder(Long chatId){
         Order order = new Order();
-        List<Cart> allItemsInCart = getAllItemsInCartByChatId(chatId);
-        List<MenuItem> menuItems = getAllMenuItemsFromCart(allItemsInCart);
         order.setChatId(chatId);
         order.setTotalPrice(getTotalPriceOfCartByChatId(chatId));
-        StringBuilder itemsAsString = new StringBuilder();
-        for(MenuItem item : menuItems){
-            itemsAsString.append(item.getName()).append(", ");
-        }
+        List<MenuItem> menuItems = getAllMenuItemsInCart(chatId);
+        String itemsAsString = getOrderString(menuItems);
         order.setItems(itemsAsString.toString());
         order.setTime(findOrderTimeByChatId(chatId));
         orderRepository.save(order);
         orderTime.remove(chatId);
         removeAllFromCart(chatId);
         return order;
+    }
+    private String getOrderString(List<MenuItem> menuItems){
+        StringBuilder itemsAsString = new StringBuilder();
+        for (int i = 0; i < menuItems.size(); i++) {
+            if(isThereADrinkAndAdditionToIt(menuItems).equals("tea")){
+                List<MenuItem> subList = getDrinkAndAdditionSublist(menuItems, "tea");
+                itemsAsString.append(groupDrinkAndAddition(subList));
+                cutMenuItemList(menuItems, subList);
+            }
+            else if (isThereADrinkAndAdditionToIt(menuItems).equals("coffe")){
+                List<MenuItem> subList = getDrinkAndAdditionSublist(menuItems, "coffe");
+                itemsAsString.append(groupDrinkAndAddition(subList));
+                cutMenuItemList(menuItems, subList);
+            }
+        }
+        for (MenuItem menuItem : menuItems) {
+            itemsAsString.append(menuItem.getName()).append(", ");
+        }
+        return itemsAsString.toString();
+    }
+    private List<MenuItem> cutMenuItemList(List<MenuItem> menuItems, List<MenuItem> sublist){
+        menuItems.removeIf(sublist::contains);
+        return menuItems;
+    }
+    private List<MenuItem> getDrinkAndAdditionSublist(List<MenuItem> menuItems, String drinkName){
+        int drinkIndex = 0;
+        int lastAdditionIndex = 0;
+        for (int i = 0; i < menuItems.size(); i++) {
+            if(menuItems.get(i).getBelongsToMenu().equals(drinkName + "menu")){
+                drinkIndex = i;
+            }
+            if(menuItems.get(i).getBelongsToMenu().equals(drinkName+"additionmenu")){
+                lastAdditionIndex = i;
+            }
+        }
+        return  menuItems.subList(drinkIndex, lastAdditionIndex+1);
+    }
+
+    private String groupDrinkAndAddition(List<MenuItem> menuItems){
+        StringBuilder groupedDrinkAndAddition = new StringBuilder("( ");
+        for (int i = 0; i < menuItems.size(); i++) {
+            if(i == menuItems.size()-1){
+                groupedDrinkAndAddition.append(menuItems.get(i).getName()).append(")");
+                continue;
+            }
+            groupedDrinkAndAddition.append(menuItems.get(i).getName()).append(" + ");
+        }
+       return groupedDrinkAndAddition.toString();
+    }
+    private String isThereADrinkAndAdditionToIt(List<MenuItem> menuItems){    //returns name of the drink
+        String nameOfDrink = "";
+        for (int i = 0; i < menuItems.size()-1; i++) {
+            if(menuItems.get(i).getBelongsToMenu().equals("coffemenu")){
+                if(menuItems.get(i+1).getBelongsToMenu().equals("coffeadditionmenu")){
+                    nameOfDrink = "coffe";
+                }
+            }
+            if(menuItems.get(i).getBelongsToMenu().equals("teamenu")){
+                if(menuItems.get(i+1).getBelongsToMenu().equals("teaadditionmenu")){
+                    nameOfDrink = "tea";
+                }
+            }
+        }
+        return nameOfDrink;
+    }
+    private List<MenuItem> getAllMenuItemsInCart(long chatId){
+        List<Cart> allItemsInCart = getAllItemsInCartByChatId(chatId);
+        List<MenuItem> menuItems = getAllMenuItemsFromCart(allItemsInCart);
+        return menuItems;
     }
     private String findOrderTimeByChatId(Long chatId){
         if(orderTime.containsKey(chatId)){
@@ -719,7 +798,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         int totalPrice = 0;
         List<Cart> cart = getAllItemsInCartByChatId(chatId);
         for (Cart cart1 : cart){
-            totalPrice += Objects.requireNonNull(menuItemRepository.findById(cart1.getItemsId()).orElse(null)).getPrice();
+            totalPrice += Objects.requireNonNull(menuItemRepository.findById(cart1.getItemsId())
+                    .orElse(null)).getPrice();
         }
         return totalPrice;
     }
@@ -767,5 +847,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private boolean isAnyCoworkerActive(){
         Coworker coworker = coworkerRepository.findCoworkerByIsActiveTrue();
         return coworker != null;
+    }
+    private String getMenuBelonging(String callbackData){
+        int itemId = Integer.parseInt(callbackData.substring(13));
+        MenuItem item = menuItemRepository.findById(itemId).orElse(null);
+        return item.getBelongsToMenu();
+    }
+
+    private int getOrderIdByChatId(long chatId){
+        return orderRepository.findTopByChatIdOrderByIdDesc(chatId).getId();
     }
 }

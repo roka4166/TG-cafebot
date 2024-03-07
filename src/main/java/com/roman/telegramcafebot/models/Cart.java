@@ -23,6 +23,8 @@ public class Cart {
     @Column(name = "expiration_date")
     private LocalDateTime expirationDate;
 
+
+
     public Cart() {
     }
 
@@ -64,4 +66,5 @@ public class Cart {
     public void setExpirationDate(LocalDateTime expirationDate) {
         this.expirationDate = expirationDate;
     }
+
 }
