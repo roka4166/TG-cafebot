@@ -18,21 +18,32 @@ public class Cart {
     @Column(name = "chat_id")
     private Long chatId;
     @Column(name = "items_id")
-    private int itemsId;
+    private String itemsId;
 
     @Column(name = "expiration_date")
     private LocalDateTime expirationDate;
+
+    @Column(name = "price")
+    private Integer price;
+    @Column(name = "items_name")
+    private String itemsName;
+    @Column(name = "belongs_to_menu")
+    private String belongsToMenu;
 
 
 
     public Cart() {
     }
 
-    public Cart(int id, Long chatId, int itemsId, LocalDateTime expirationDate) {
+    public Cart(int id, Long chatId, String itemsId, LocalDateTime expirationDate,
+                Integer price, String itemsName, String belongsToMenu) {
         this.id = id;
         this.chatId = chatId;
         this.itemsId = itemsId;
         this.expirationDate = expirationDate;
+        this.price = price;
+        this.itemsName = itemsName;
+        this.belongsToMenu = belongsToMenu;
     }
 
     public int getId() {
@@ -51,11 +62,11 @@ public class Cart {
         this.chatId = chatId;
     }
 
-    public int getItemsId() {
+    public String getItemsId() {
         return itemsId;
     }
 
-    public void setItemsId(int itemsId) {
+    public void setItemsId(String itemsId) {
         this.itemsId = itemsId;
     }
 
@@ -67,4 +78,27 @@ public class Cart {
         this.expirationDate = expirationDate;
     }
 
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
+    }
+
+    public String getItemsName() {
+        return itemsName;
+    }
+
+    public void setItemsName(String itemsName) {
+        this.itemsName = itemsName;
+    }
+
+    public String getBelongsToMenu() {
+        return belongsToMenu;
+    }
+
+    public void setBelongsToMenu(String belongsToMenu) {
+        this.belongsToMenu = belongsToMenu;
+    }
 }

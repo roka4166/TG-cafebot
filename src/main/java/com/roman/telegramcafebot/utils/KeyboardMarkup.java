@@ -49,12 +49,12 @@ public class KeyboardMarkup {
     public InlineKeyboardMarkup getKeyboardMarkup(List<Button> buttons, int rowsPerLine){
         return createInlineKeyboardMarkup(buttons, rowsPerLine);
     }
-    public InlineKeyboardMarkup getCartKeyBoardMarkup(List<MenuItem> items){
+    public InlineKeyboardMarkup getCartKeyBoardMarkup(List<Cart> itemsInCart){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
         int batchSize = 4;
-        int totalButtons = items.size();
+        int totalButtons = itemsInCart.size();
         int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
 
         for (int j = 0; j < numberOfIterations; j++) {
@@ -62,7 +62,7 @@ public class KeyboardMarkup {
             for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
                 button.setText(String.valueOf(i+1));
-                button.setCallbackData("REMOVEFROMCART"+items.get(i).getId());
+                button.setCallbackData("REMOVEFROMCART"+itemsInCart.get(i).getItemsId());
                 row.add(button);
             }
             rowsInLine.add(row);
@@ -84,6 +84,38 @@ public class KeyboardMarkup {
 
         row.add(removeAllButton);
         row.add(goToPaymentButton);
+        row.add(backToMenuButton);
+
+        rowsInLine.add(row);
+        keyboardMarkup.setKeyboard(rowsInLine);
+        return keyboardMarkup;
+    }
+    public InlineKeyboardMarkup getAddAdditionToCartMenuItemKeyboardMarkup(List<Cart> itemsInCart, String callbackData){
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+
+        int additionItemId = Integer.valueOf(callbackData.substring(12));
+
+        int batchSize = 4;
+        int totalButtons = itemsInCart.size();
+        int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
+
+        for (int j = 0; j < numberOfIterations; j++) {
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
+                InlineKeyboardButton button = new InlineKeyboardButton();
+                button.setText(String.valueOf(i+1));
+                button.setCallbackData(itemsInCart.get(i).getItemsId()+ "+" + additionItemId);
+                row.add(button);
+            }
+            rowsInLine.add(row);
+        }
+        InlineKeyboardButton backToMenuButton = new InlineKeyboardButton();
+
+        backToMenuButton.setText("Назад в меню");
+        backToMenuButton.setCallbackData("FOODMENU");
+
+        List<InlineKeyboardButton> row = new ArrayList<>();
         row.add(backToMenuButton);
 
         rowsInLine.add(row);

@@ -197,7 +197,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         MenuItem menuItem = menuItemRepository.findById(menuItemId).orElse(null);
         if(menuItem != null){
             menuItem.setStopped(false);
-            String belongsToMenu = menuItem.getBelongsToMenu().replace("STOPPED", "");
+            String belongsToMenu = menuItem.getBelongsToMenu();
             menuItem.setBelongsToMenu(belongsToMenu);
             menuItemRepository.save(menuItem);
 
@@ -249,6 +249,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             removeFromCart(chatId, callbackData);
             sendMessage(chatId, "Удалено из корзины", getGoToMenuButton());
         }
+        else if (callbackData.contains("+") && callbackData.startsWith("ITEM")){
+            sendMessage(chatId, createConfirmationTextWithAddition(getListFromMenuItemAndAddition(callbackData)),
+                    keyboardMarkup.getKeyboardMarkup(getConfirmationButtons(callbackData), 2));
+        }
         else if(callbackData.startsWith(CallbackDataCommand.ITEM.getCallbackDataCommand())){
             if(validateCoworker(chatId)){
                 sendMessage(chatId, "Что сделать?",
@@ -257,6 +261,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             sendMessage(chatId, createConfirmationText(findItemById(callbackData)),
                     keyboardMarkup.getKeyboardMarkup(getConfirmationButtons(callbackData), 2));
+        }
+        else if(callbackData.startsWith(CallbackDataCommand.ADDITIONITEM.getCallbackDataCommand())){
+            if(checkIfCartIsEmpty(chatId)){
+                sendMessage(chatId, "Сперва добавте блюдо в корзину.", getGoToMenuButton());
+            }
+            else {
+                sendMessage(chatId, getAdditionMenuTextFromCart(getAllItemsInCartByChatId(chatId)),
+                        keyboardMarkup.getAddAdditionToCartMenuItemKeyboardMarkup(getAllItemsInCartByChatId(chatId), callbackData));
+            }
         }
         else if(callbackData.startsWith(CallbackDataCommand.STOPPEDITEM.getCallbackDataCommand())){
             if(unstopMenuItem(callbackData)){
@@ -269,6 +282,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
         else if(callbackData.startsWith(CallbackDataCommand.ADDTOCART.getCallbackDataCommand())){
+            if(callbackData.contains("+")){
+                addToCartWithAdditions(chatId,callbackData);
+                sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
+                return;
+            }
             addToCart(chatId, callbackData);
             String menuBelonging = getMenuBelonging(callbackData);
             if(menuBelonging.equals("coffemenu")){
@@ -399,14 +417,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                             keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("saladmenu")), 3));
 
             case SANDWICHES ->
-                    sendMessage(chatId,getMenuText(getItemsByMenuBelonging("sandwichmenu")), keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("sandwichmenu")), 4));
+                    sendMessage(chatId,getMenuText(getItemsByMenuBelonging("sandwichmenu")),
+                            keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("sandwichmenu")), 4));
 
             case BRUSCHETTAS ->
                     sendMessage(chatId,getMenuText(getItemsByMenuBelonging("bruschettamenu")),
                             keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("bruschettamenu")), 3));
 
-            case ADDITION ->
-                    sendMessage(chatId,getMenuText(getItemsByMenuBelonging("additionmenu")),
+            case ADDITIONMENU ->
+                    sendMessage(chatId,getAdditionMenuText(getItemsByMenuBelonging("additionmenu")),
                             keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("additionmenu")), 3));
 
             case DRINKS ->
@@ -453,20 +472,22 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId,"Введите время в которое вы хотите забрать заказ");
             }
             case PAYMENTCONFIRMEDBYCUSTOMER -> {
-                int orderId = getOrderIdByChatId(chatId);
+                Order order = orderRepository.findTopByChatIdOrderByIdDesc(chatId);
                 sendMessage(chatId, String.format("Благодарим за покупку. Ваш заказ номер %d был принят." +
-                        " Укажите этот номер когда будете забирать заказ.", orderId));
+                        " Укажите этот номер когда будете забирать заказ.", order.getId()));
                 Long coworkerChatId = getCoworkerChatId();
-                sendMessage(coworkerChatId, "Заказ номер:" + orderId + ". Нажмите подтвердить что бы подтвердить оплату",
-                        createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+orderId));
+                sendMessage(coworkerChatId, String.format("Заказ номер: %d на сумму %d руб. Содержит %s " +
+                                "Нажмите подтвердить что бы подтвердить оплату",
+                                order.getId(), order.getTotalPrice(), order.getItems()),
+                                createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+order.getId()));
             }
             case SHOWCART -> {
                 if(checkIfCartIsEmpty(chatId)){
                     sendMessage(chatId, "Корзина пуста", getGoToMenuButton());
                 }
                 else {
-                    sendMessage(chatId, getMenuTextForCart(getAllMenuItemsFromCart(getAllItemsInCartByChatId(chatId))),
-                            keyboardMarkup.getCartKeyBoardMarkup(getAllMenuItemsFromCart(getAllItemsInCartByChatId(chatId))));
+                    sendMessage(chatId, getMenuTextForCart(getAllItemsInCartByChatId(chatId)),
+                            keyboardMarkup.getCartKeyBoardMarkup(getAllItemsInCartByChatId(chatId)));
                 }
             }
             case REMOVEALLFROMCART -> {
@@ -484,7 +505,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, getMenuTextForStoppedItems(stoppedItems),
                 keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("STOPPED")), 3));
     }
-
 
     private void startCommandReceived(Long chatId, String name) {
         String answer = String.format("Приветствую, %s", name);
@@ -544,6 +564,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         Coworker coworker = coworkerRepository.findCoworkerByChatId(chatId);
         return coworker != null;
     }
+
     private Long getCoworkerChatId(){
         Coworker coworker = coworkerRepository.findCoworkerByIsActiveTrue();
         if(coworker != null){
@@ -566,6 +587,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         return menuText.toString();
     }
+    private String getAdditionMenuText(List<MenuItem> items){
+        List<Button> buttons = buttonRepository.findAllByBelongsToMenu(items.get(0).getBelongsToMenu());
+        StringBuilder menuText = new StringBuilder();
+        int i = 0;
+        for (Button button : buttons) {
+            if(button.getCallbackData().equals("FOODMENU")){
+                continue;
+            }
+            button.setName(String.valueOf(i+1));
+            button.setCallbackData("ADDITIONITEM"+items.get(i).getId());
+            menuText.append(i+1).append(". ").append(items.get(i).getName()).append(" ").append(items.get(i).getPrice()).append(" руб.").append("\n");
+            i += 1;
+        }
+        return menuText.toString();
+    }
     private String getMenuTextForStoppedItems(List<MenuItem> items){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenuStartingWith("STOPPED");
         StringBuilder menuText = new StringBuilder();
@@ -576,8 +612,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         return menuText.toString();
     }
+    private List<MenuItem> getListFromMenuItemAndAddition(String callbackData){
+        String[] menuItemAndAdditions = callbackData.replace("ITEM", "").split("\\+");
+        List<MenuItem> items = new ArrayList<>();
+        for (String menuItemId : menuItemAndAdditions){
+            items.add(menuItemRepository.findById(Integer.valueOf(menuItemId)).orElse(null));
+        }
+        return items;
+    }
 
-    private String getMenuTextForCart(List<MenuItem> items){
+    private String getMenuTextForCart(List<Cart> itemsInCart){
         StringBuilder menuText = new StringBuilder();
         String cartMenuText = """
                 Что бы удалить предмет из корзины, просто кликните по номеру который соответствует товару
@@ -585,14 +629,28 @@ public class TelegramBot extends TelegramLongPollingBot {
                 """;
         menuText.append(cartMenuText);
         int sum = 0;
-        for (int i = 0; i < items.size(); i++) {
-            menuText.append(i+1).append(". ").append(items.get(i).getName()).append(" ")
-                    .append((items.get(i).getPrice())).append(" руб. ")
+        for (int i = 0; i < itemsInCart.size(); i++) {
+            menuText.append(i+1).append(". ").append(itemsInCart.get(i).getItemsName()).append(" ")
+                    .append((itemsInCart.get(i).getPrice())).append(" руб. ")
                     .append("\n");
-            sum += (items.get(i).getPrice());
+            sum += (itemsInCart.get(i).getPrice());
         }
         String infoAboutSum = String.format("\nСумма корзины %d", sum);
         menuText.append(infoAboutSum);
+        return menuText.toString();
+    }
+    private String getAdditionMenuTextFromCart(List<Cart> itemsInCart){
+        StringBuilder menuText = new StringBuilder();
+        String cartMenuText = """
+                Выберите блюдо куда вы хотите добавить добавку.
+
+                """;
+        menuText.append(cartMenuText);
+        for (int i = 0; i < itemsInCart.size(); i++) {
+            menuText.append(i+1).append(". ").append(itemsInCart.get(i).getItemsName())
+                    .append("\n");
+
+        }
         return menuText.toString();
     }
     private List<Button> sortButtonsByName(List<Button> buttonsToSort){
@@ -640,98 +698,157 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String createConfirmationText(MenuItem item){
         return String.format("Вы выбрали %s. Цена %d руб.", item.getName(), item.getPrice());
     }
+    private String createConfirmationTextWithAddition(List<MenuItem> menuItems){
+        StringBuilder text = new StringBuilder("Вы выбрали ( ");
+        int totalPrice = 0;
+        for (int i = 0; i < menuItems.size(); i++) {
+            if(i == menuItems.size()-1){
+                text.append(menuItems.get(i).getName()).append(" )");
+                totalPrice += menuItems.get(i).getPrice();
+                continue;
+            }
+            totalPrice += menuItems.get(i).getPrice();
+            text.append(menuItems.get(i).getName()).append(" + ");
+        }
+        text.append(". Цена ").append(totalPrice).append(" руб. ");
+        return text.toString();
+    }
     private MenuItem findItemById(String callbackData){
         return menuItemRepository.findById(Integer.valueOf(callbackData.substring(4))).orElse(null);
     }
     private void addToCart(Long chatId, String callbackData){
-        int menuItemId = Integer.parseInt(callbackData.substring(13));
+        String menuItemId = callbackData.substring(9);
+        MenuItem item = findItemById(menuItemId);
         Cart cart = new Cart();
         cart.setChatId(chatId);
         cart.setItemsId(menuItemId);
         cart.setExpirationDate(LocalDateTime.now().plusMinutes(15));
+        cart.setPrice(item.getPrice());
+        cart.setItemsName(item.getName());
+        cart.setBelongsToMenu(item.getBelongsToMenu());
         cartRepository.save(cart);
+    }
+    private void addToCartWithAdditions(Long chatId, String callbackData){
+        String itemIds = callbackData.substring(13);
+        AddAdditionToMenuItemInCart(chatId, callbackData);
+    }
+    private void AddAdditionToMenuItemInCart(Long chatId, String callbackData){
+        String itemIdInCart = callbackData.replace("ADDTOCART", "");
+        int index = itemIdInCart.lastIndexOf("+");
+        String itemsIdinCart = itemIdInCart.substring(0,index);
+        int additionId = Integer.parseInt(itemIdInCart.substring(index+1));
+        Cart itemInCart = cartRepository.findTopByChatIdAndItemsIdOrderByIdDesc(chatId, itemsIdinCart);
+        MenuItem addition = menuItemRepository.findById(additionId).orElse(null);
+
+        itemInCart.setPrice(itemInCart.getPrice()+addition.getPrice());
+        itemInCart.setItemsName(itemInCart.getItemsName() + "+" + addition.getName());
+        itemInCart.setItemsId(itemInCart.getItemsId()+"+"+addition.getId());
+    }
+    private int calculatePriceWithAdditions(String itemIds){
+        int totalPrice = 0;
+        List<MenuItem> items = findMultipleMenuItems(itemIds);
+        for (MenuItem item : items){
+            totalPrice += item.getPrice();
+        }
+        return totalPrice;
+    }
+    private String getTextForItemAndAddition(String itemIds){
+        StringBuilder text = new StringBuilder("( ");
+        List<MenuItem> menuItems = findMultipleMenuItems(itemIds);
+        for (int i = 0; i < menuItems.size(); i++) {
+            if(i == menuItems.size()-1){
+                text.append(menuItems.get(i).getName()).append(" )");
+                continue;
+            }
+            text.append(menuItems.get(i).getName()).append(" + ");
+        }
+        return text.toString();
+    }
+    private List<MenuItem> findMultipleMenuItems(String itemIds){
+        String[] ids = itemIds.split("\\+");
+        List<MenuItem> items = new ArrayList<>();
+        for (String idAsString : ids){
+            int id = Integer.parseInt(idAsString);
+            items.add(menuItemRepository.findById(id).orElse(null));
+        }
+        return items;
     }
     private Order createOrder(Long chatId){
         Order order = new Order();
         order.setChatId(chatId);
         order.setTotalPrice(getTotalPriceOfCartByChatId(chatId));
-        List<MenuItem> menuItems = getAllMenuItemsInCart(chatId);
-        String itemsAsString = getOrderString(menuItems);
-        order.setItems(itemsAsString.toString());
+        List<Cart> itemsInCart = getAllItemsInCartByChatId(chatId);
+        String itemsAsString = getOrderString(itemsInCart);
+        order.setItems(itemsAsString);
         order.setTime(findOrderTimeByChatId(chatId));
         orderRepository.save(order);
         orderTime.remove(chatId);
         removeAllFromCart(chatId);
         return order;
     }
-    private String getOrderString(List<MenuItem> menuItems){
+    private String getOrderString(List<Cart> itemsInCart){
         StringBuilder itemsAsString = new StringBuilder();
-        for (int i = 0; i < menuItems.size(); i++) {
-            if(isThereADrinkAndAdditionToIt(menuItems).equals("tea")){
-                List<MenuItem> subList = getDrinkAndAdditionSublist(menuItems, "tea");
+        for (int i = 0; i < itemsInCart.size(); i++) {
+            if(isThereADrinkAndAdditionToIt(itemsInCart).equals("tea")){
+                List<Cart> subList = getDrinkAndAdditionSublist(itemsInCart, "tea");
                 itemsAsString.append(groupDrinkAndAddition(subList));
-                cutMenuItemList(menuItems, subList);
+                cutMenuItemList(itemsInCart, subList);
             }
-            else if (isThereADrinkAndAdditionToIt(menuItems).equals("coffe")){
-                List<MenuItem> subList = getDrinkAndAdditionSublist(menuItems, "coffe");
+            else if (isThereADrinkAndAdditionToIt(itemsInCart).equals("coffe")){
+                List<Cart> subList = getDrinkAndAdditionSublist(itemsInCart, "coffe");
                 itemsAsString.append(groupDrinkAndAddition(subList));
-                cutMenuItemList(menuItems, subList);
+                cutMenuItemList(itemsInCart, subList);
             }
         }
-        for (MenuItem menuItem : menuItems) {
-            itemsAsString.append(menuItem.getName()).append(", ");
+        for (Cart itemInCart : itemsInCart) {
+            itemsAsString.append(itemInCart.getItemsName()).append(", ");
         }
         return itemsAsString.toString();
     }
-    private List<MenuItem> cutMenuItemList(List<MenuItem> menuItems, List<MenuItem> sublist){
-        menuItems.removeIf(sublist::contains);
-        return menuItems;
+    private List<Cart> cutMenuItemList(List<Cart> itemsInCart, List<Cart> sublist){
+        itemsInCart.removeIf(sublist::contains);
+        return itemsInCart;
     }
-    private List<MenuItem> getDrinkAndAdditionSublist(List<MenuItem> menuItems, String drinkName){
+    private List<Cart> getDrinkAndAdditionSublist(List<Cart> itemsInCart, String drinkName){
         int drinkIndex = 0;
         int lastAdditionIndex = 0;
-        for (int i = 0; i < menuItems.size(); i++) {
-            if(menuItems.get(i).getBelongsToMenu().equals(drinkName + "menu")){
+        for (int i = 0; i < itemsInCart.size(); i++) {
+            if(itemsInCart.get(i).getBelongsToMenu().equals(drinkName + "menu")){
                 drinkIndex = i;
             }
-            if(menuItems.get(i).getBelongsToMenu().equals(drinkName+"additionmenu")){
+            if(itemsInCart.get(i).getBelongsToMenu().equals(drinkName+"additionmenu")){
                 lastAdditionIndex = i;
             }
         }
-        return  menuItems.subList(drinkIndex, lastAdditionIndex+1);
+        return  itemsInCart.subList(drinkIndex, lastAdditionIndex+1);
     }
 
-    private String groupDrinkAndAddition(List<MenuItem> menuItems){
+    private String groupDrinkAndAddition(List<Cart> itemsInCart){
         StringBuilder groupedDrinkAndAddition = new StringBuilder("( ");
-        for (int i = 0; i < menuItems.size(); i++) {
-            if(i == menuItems.size()-1){
-                groupedDrinkAndAddition.append(menuItems.get(i).getName()).append(")");
+        for (int i = 0; i < itemsInCart.size(); i++) {
+            if(i == itemsInCart.size()-1){
+                groupedDrinkAndAddition.append(itemsInCart.get(i).getItemsName()).append(")");
                 continue;
             }
-            groupedDrinkAndAddition.append(menuItems.get(i).getName()).append(" + ");
+            groupedDrinkAndAddition.append(itemsInCart.get(i).getItemsName()).append(" + ");
         }
        return groupedDrinkAndAddition.toString();
     }
-    private String isThereADrinkAndAdditionToIt(List<MenuItem> menuItems){    //returns name of the drink
+    private String isThereADrinkAndAdditionToIt(List<Cart> itemsInCart){    //returns name of the drink
         String nameOfDrink = "";
-        for (int i = 0; i < menuItems.size()-1; i++) {
-            if(menuItems.get(i).getBelongsToMenu().equals("coffemenu")){
-                if(menuItems.get(i+1).getBelongsToMenu().equals("coffeadditionmenu")){
+        for (int i = 0; i < itemsInCart.size()-1; i++) {
+            if(itemsInCart.get(i).getBelongsToMenu().equals("coffemenu")){
+                if(itemsInCart.get(i+1).getBelongsToMenu().equals("coffeadditionmenu")){
                     nameOfDrink = "coffe";
                 }
             }
-            if(menuItems.get(i).getBelongsToMenu().equals("teamenu")){
-                if(menuItems.get(i+1).getBelongsToMenu().equals("teaadditionmenu")){
+            if(itemsInCart.get(i).getBelongsToMenu().equals("teamenu")){
+                if(itemsInCart.get(i+1).getBelongsToMenu().equals("teaadditionmenu")){
                     nameOfDrink = "tea";
                 }
             }
         }
         return nameOfDrink;
-    }
-    private List<MenuItem> getAllMenuItemsInCart(long chatId){
-        List<Cart> allItemsInCart = getAllItemsInCartByChatId(chatId);
-        List<MenuItem> menuItems = getAllMenuItemsFromCart(allItemsInCart);
-        return menuItems;
     }
     private String findOrderTimeByChatId(Long chatId){
         if(orderTime.containsKey(chatId)){
@@ -775,31 +892,23 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttonRepository.save(buttonToAdd);
     }
     private void removeFromCart(Long chatId, String callbackData){
-        List<Cart> items = cartRepository.findAllByChatId(chatId);
-        int menuItemId = Integer.parseInt(callbackData.substring(14));
-        for (Cart cart : items){
-            if(cart.getItemsId()==menuItemId){
-                cartRepository.delete(cart);
-            }
+        String itemId = callbackData.substring(14);
+        List<Cart> items = cartRepository.findByChatIdAndAndItemsId(chatId, itemId);
+        if(items.size() >= 2){
+            cartRepository.delete(items.get(0));
+            return;
         }
+        cartRepository.deleteByChatIdAndItemsId(chatId, itemId);
     }
     private List<Cart> getAllItemsInCartByChatId(Long chatId){
         return cartRepository.findAllByChatId(chatId);
-    }
-    private List<MenuItem> getAllMenuItemsFromCart(List<Cart> cart){
-        List<MenuItem> menuItems = new ArrayList<>();
-        for (Cart cart1 : cart){
-            menuItems.add(menuItemRepository.findById(cart1.getItemsId()).orElse(null));
-        }
-        return menuItems;
     }
 
     private int getTotalPriceOfCartByChatId(Long chatId){
         int totalPrice = 0;
         List<Cart> cart = getAllItemsInCartByChatId(chatId);
         for (Cart cart1 : cart){
-            totalPrice += Objects.requireNonNull(menuItemRepository.findById(cart1.getItemsId())
-                    .orElse(null)).getPrice();
+            totalPrice += cart1.getPrice();
         }
         return totalPrice;
     }
@@ -858,3 +967,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         return orderRepository.findTopByChatIdOrderByIdDesc(chatId).getId();
     }
 }
+
+
+
+
+
