@@ -11,11 +11,11 @@ public class AdminPassword {
     @Column(name = "id")
     private Integer id;
     @Column(name = "password")
-    private String key;
+    private String password;
 
-    public AdminPassword(Integer id, String key, Boolean isActive) {
+    public AdminPassword(Integer id, String password, Boolean isActive) {
         this.id = id;
-        this.key = key;
+        this.password = password;
 
     }
 
@@ -30,11 +30,11 @@ public class AdminPassword {
         this.id = id;
     }
 
-    public String getKey() {
-        return key;
+    public String getPassword() {
+        return password;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setPassword(String key) {
+        this.password = key;
     }
 }

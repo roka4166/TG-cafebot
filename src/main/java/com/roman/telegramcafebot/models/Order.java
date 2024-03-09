@@ -21,16 +21,19 @@ public class Order {
     private String items;
     @Column(name = "time")
     private String time;
+    @Column(name = "sent")
+    private Boolean orderSentToCoworker;
 
     public Order() {
     }
 
-    public Order(Integer id, Long chatId, Integer totalPrice, String items, String time) {
+    public Order(Integer id, Long chatId, Integer totalPrice, String items, String time, Boolean orderSentToCoworker) {
         this.id = id;
         this.chatId = chatId;
         this.totalPrice = totalPrice;
         this.items = items;
         this.time = time;
+        this.orderSentToCoworker = orderSentToCoworker;
     }
 
     public String getTime() {
@@ -71,6 +74,14 @@ public class Order {
 
     public void setItems(String items) {
         this.items = items;
+    }
+
+    public Boolean getOrderSentToCoworker() {
+        return orderSentToCoworker;
+    }
+
+    public void setOrderSentToCoworker(Boolean orderSentToCoworker) {
+        this.orderSentToCoworker = orderSentToCoworker;
     }
 
     @Override

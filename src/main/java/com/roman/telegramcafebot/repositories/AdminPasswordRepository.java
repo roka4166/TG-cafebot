@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AdminPasswordRepository extends JpaRepository<AdminPassword, Integer> {
+    AdminPassword findTopByPassword(String password);
 }

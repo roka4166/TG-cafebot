@@ -17,6 +17,7 @@ public interface CartRepository extends JpaRepository<Cart, Integer> {
     void deleteAllByChatId(Long chatId);
 
     void deleteByChatIdAndItemsId(Long chatId, String itemsId);
+    List<Cart> findAllByChatIdOrderByIdDesc(Long chatId);
 
 
     void deleteByItemsId(String itemsIs);

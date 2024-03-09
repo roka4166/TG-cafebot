@@ -9,5 +9,5 @@ import java.util.List;
 public interface CoworkerRepository extends JpaRepository<Coworker, Integer> {
    Coworker findCoworkerByChatId(Long chatId);
 
-   Coworker findCoworkerByIsActiveTrue();
+   Coworker findTopByIsActiveTrue();
 }
