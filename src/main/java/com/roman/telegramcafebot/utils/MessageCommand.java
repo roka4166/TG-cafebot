@@ -6,7 +6,8 @@ public enum MessageCommand {
     COMMAND_NEW_ITEM ("/newitem"),
     COMMAND_PASSWORD ("/password"),
     COMMAND_ADMIN_ON ("/adminon"),
-    COMMAND_ADMIN_OFF ("/adminoff");
+    COMMAND_ADMIN_OFF ("/adminoff"),
+    COMMAND_DELETEME("/deleteme");
 
     private final String messageCommand;
 

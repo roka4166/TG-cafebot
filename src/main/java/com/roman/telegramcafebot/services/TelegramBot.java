@@ -33,8 +33,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private Map<Long, String> orderTime = new HashMap<>();
 
-    private List<Reservation> reservations = new ArrayList<>();
-
 
     private KeyboardMarkup keyboardMarkup;
 
@@ -50,6 +48,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private MenuItemRepository menuItemRepository;
 
     private CartRepository cartRepository;
+    private ReservationRepository reservationRepository;
 
 
 
@@ -58,7 +57,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig botConfig, KeyboardMarkup keyboardMarkup,
                        AdminPasswordRepository adminPasswordRepository, ButtonRepository buttonRepository,
                        CoworkerRepository coworkerRepository, OrderRepository orderRepository,
-                       MenuItemRepository menuItemRepository, CartRepository cartRepository){
+                       MenuItemRepository menuItemRepository, CartRepository cartRepository,
+                       ReservationRepository reservationRepository){
         this.botConfig = botConfig;
         this.keyboardMarkup = keyboardMarkup;
         this.adminPasswordRepository = adminPasswordRepository;
@@ -67,6 +67,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.orderRepository = orderRepository;
         this.menuItemRepository = menuItemRepository;
         this.cartRepository = cartRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     @Override
@@ -111,76 +112,32 @@ public class TelegramBot extends TelegramLongPollingBot {
             MessageCommand messageCommand = MessageCommand.fromMessageText(messageText);
             if(messageCommand!=null){
                 switch (messageCommand) {
-                    case COMMAND_START -> {
-                        removeAllFromCart(chatId);
-                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                    }
+                    case COMMAND_START -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     case COMMAND_ADMIN_OFF -> updateCoworkerActivity(chatId, false);
                     case COMMAND_ADMIN_ON -> updateCoworkerActivity(chatId, true);
-                    case COMMAND_ADMIN -> {
-                        if (validateCoworker(chatId)) {
-                            sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
-                        } else {
-                            sendMessage(chatId, "Нет доступа к функции");
-                        }
-                    }
+                    case COMMAND_ADMIN -> processAdminCommand(chatId);
+                    case COMMAND_DELETEME -> deleteCoworker(chatId);
                 }
                 if (messageText.startsWith(MessageCommand.COMMAND_PASSWORD.getMessageCommand())) {
                     validatePassword(chatId, messageText);
                 }
                 else if (messageText.startsWith(MessageCommand.COMMAND_NEW_ITEM.getMessageCommand())) {
-                    if (validateCoworker(chatId)) {
-                        try {
-                            createMenuItem(messageText);
-                            sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
-                                    keyboardMarkup.getKeyboardMarkup(getButtons("adminmenu"), 3));
-                        }
-                        catch (Exception e) {
-                            sendMessage(chatId,"Ошибка! Неправильный формат ввода");
-                        }
-                    } else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
+                    processNewItemCommand(chatId, messageText);
                 }
             }
                 if(expectingNameForReservationMap.containsKey(chatId) && expectingNameForReservationMap.get(chatId)) {
-                    Reservation reservation = findReservationByChatId(chatId);
-                    if (reservation == null) {
-                        sendMessage(chatId, "Что то пошло нет так");
-                        return;
-                    }
-                    reservation.setName(messageText);
-                    sendMessage(chatId, "Теперь введите время");
-                    expectingNameForReservationMap.put(chatId, false);
-                    expectingTimeForReservationMap.put(chatId, true);
+                    processExpectingNameForReservation(chatId, messageText);
                 }
 
                 else if (expectingTimeForReservationMap.containsKey(chatId) && expectingTimeForReservationMap.get(chatId)) {
-                    Reservation reservation = findReservationByChatId(chatId);
-                    if (reservation == null) {
-                        sendMessage(chatId, "Ошибка, что то пошло нет так");
-                        return;
-                    }
-                    reservation.setTime(messageText);
-                    sendMessage(chatId, getBookingConfirmationTextByChatId(chatId),
-                            keyboardMarkup.getKeyboardMarkup(getButtons("bookingconfirmationmenu"), 2));
-                    expectingTimeForReservationMap.put(chatId, false);
+                    processExpectingTimeForReservation(chatId, messageText);
                 }
 
                 else if (expectingCommentFromCoworker.containsKey(getCoworkerChatId()) && expectingCommentFromCoworker.get(getCoworkerChatId())) {
-                    Reservation reservation = findReservationByCommentExpectation();
-                    if (reservation == null) {
-                        sendMessage(chatId, "Ошибка, что то пошло нет так");
-                        return;
-                    }
-                    reservation.setCoworkerComment(messageText);
-                    sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась клиенту");
-                    String text = String.format("Бронь отклонена. Комментарий от сотрудника: %s", reservation.getCoworkerComment());
-                    sendMessage(reservation.getChatId(), text);
-                    expectingCommentFromCoworker.put(getCoworkerChatId(), false);
-                    deleteReservation(reservation);
+                    processExpectingCommentFromCoworker(messageText);
                 }
                 else if(expectingTimeForPreorder.containsKey(chatId) && expectingTimeForPreorder.get(chatId)) {
-                    orderTime.put(chatId, messageText);
-                    sendMessage(chatId,"Подтвердить время " + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
+                    processExpectingTimeForPreorder(chatId, messageText);
                 }
         }
 
@@ -195,10 +152,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         else if (callbackData.startsWith(CallbackDataCommand.AMOUNT.getCallbackDataCommand())){
             String amountOfPeople = callbackData.substring(6);
-            Reservation reservation = new Reservation();
-            reservation.setChatId(chatId);
-            reservation.setAmountOfPeople(amountOfPeople);
-            reservations.add(reservation);
+            createReservationAndAddAmountOfPeople(chatId, callbackData);
             String text = String.format("Вы выбрали кол-во человек %s, теперь нужно ввести имя на которое вы хотите " +
                     "забронировать столик.", amountOfPeople);
             sendMessage(chatId, text);
@@ -245,7 +199,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         else if(callbackData.startsWith(CallbackDataCommand.STOPPEDITEM.getCallbackDataCommand())){
             if(unstopMenuItem(callbackData)){
-                sendMessage(chatId, "Стоп снят успешно",
+                sendMessage(chatId, "Стоп снят успешно /admin",
                         keyboardMarkup.getKeyboardMarkup(getAdminFoodMenuButtons(), 3));
             }
             else {
@@ -256,7 +210,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         else if(callbackData.startsWith(CallbackDataCommand.ADDTOCART.getCallbackDataCommand())){
             if(callbackData.contains("+")){
                 addAdditionToMenuItemInCart(chatId, callbackData);
-                sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
                 return;
             }
             else if(doItemBelongToDrinkAdditionMenu(callbackData)){
@@ -280,37 +233,56 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
         }
         else if(callbackData.startsWith(CallbackDataCommand.RESERVATION_CONFIRMED.getCallbackDataCommand())){
-           try {
-               Reservation reservation = findReservationById(callbackData);
-               String text = "Бронь стола подтверждена";
-               sendMessage(getCoworkerChatId(), text);
-               sendMessage(reservation.getChatId(), String.format("Бронь стола на имя %s подтверждена. Время %s. Кол-во человек %s",
-                        reservation.getName(), reservation.getTime(), reservation.getAmountOfPeople()));
-               deleteReservation(reservation);
-           }
-           catch (Exception e){
-               sendMessage(getCoworkerChatId(), "Нет брони");
-           }
+           confirmReservation(chatId, callbackData);
         }
         else if(callbackData.startsWith(CallbackDataCommand.RESERVATION_DECLINED.getCallbackDataCommand())){
             synchronized (expectingCommentFromCoworker) {
                 if (!expectingCommentFromCoworker.containsValue(true)) {
-                    Reservation reservation = findReservationById(callbackData);
-                    reservation.setCoworkerComment("expecting");
-                    String text = "Введите причину отказа брони";
-                    sendMessage(getCoworkerChatId(), text);
-                    expectingCommentFromCoworker.put(getCoworkerChatId(), true);
+                    Reservation reservation = findReservationById(chatId, callbackData);
+                    if(reservation.getConfirmedByCoworker() == null){
+                        reservation.setCoworkerComment("expecting");
+                        sendMessage(getCoworkerChatId(), "Введите причину отказа брони");
+                        expectingCommentFromCoworker.put(getCoworkerChatId(), true);
+                    }
+                    else {
+                        sendMessage(getCoworkerChatId(), "Ошибка вы уже изменили статус брони");
+                    }
                 }
             }
         }
+        else if(callbackData.startsWith(CallbackDataCommand.DECLINE_RESERVATION.getCallbackDataCommand())){
+            String reservationId = callbackData.substring(callbackData.lastIndexOf("N")+1);
+            sendMessage(getCoworkerChatId(), "Подтвердить отказ брони",
+                    keyboardMarkup.createTwoButtons("ДА", "RESERVATION_DECLINED"+reservationId, "НЕТ", "RESERVATIONDECISION"+reservationId));
+        }
+        else if(callbackData.startsWith(CallbackDataCommand.CONFIRM_RESERVATION.getCallbackDataCommand())){
+            String reservationId = callbackData.substring(callbackData.lastIndexOf("N")+1);
+            sendMessage(getCoworkerChatId(), "Подтвердить бронь",
+                    keyboardMarkup.createTwoButtons("ДА", "RESERVATION_CONFIRMED"+reservationId, "НЕТ", "RESERVATIONDECISION"+reservationId));
+        }
+        else if(callbackData.startsWith(CallbackDataCommand.RESERVATIONDECISION.getCallbackDataCommand())){
+            int reservationId = Integer.parseInt(callbackData.substring(callbackData.lastIndexOf("N")+1));
+            Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+            if(reservation == null){
+                sendMessage(chatId, "Что то пошло не так, бронь не была найдена в базе");
+                return;
+            }
+            sendMessage(getCoworkerChatId(), reservation.toString(),
+                    keyboardMarkup.getBookingConfirmationAdminMenu(getButtons("bookingconfirmationadminmenu"),
+                            reservation));
+        }
+
         else if (callbackData.startsWith(CallbackDataCommand.PAYMENTCONFIRMEDBYCOWORKER.getCallbackDataCommand())){
             Order order = orderRepository.findById(Integer.valueOf(callbackData.substring(26))).orElse(null);
             if (order == null) {
                 sendMessage(chatId, "Ошибка, заказ не был найден в базе");
                 return;
+            } else if (order.getOrderConfirmed()) {
+                sendMessage(getCoworkerChatId(), "Вы уже подтвердили заказ "+order.getId());
             }
-            sendMessage(order.getChatId(), "Оплата была подтверждена работником");
-            sendMessage(getCoworkerChatId(), "Оплата подтверждена");
+            order.setOrderConfirmed(true);
+            sendMessage(order.getChatId(), "Оплата была подтверждена работником. /start");
+            sendMessage(getCoworkerChatId(), "Оплата заказа"+ order.getId() + "подтверждена");
         }
         else if (callbackData.startsWith(CallbackDataCommand.DELETE.getCallbackDataCommand())){
             try {
@@ -340,26 +312,40 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 keyboardMarkup.getKeyboardMarkup(getButtons("mainmenu"),  1));
 
                 case RESERVATION -> {
-                    removeAllReserVationsByChatId(chatId);
                     String text = "Введите количество человек: ";
                     sendMessage(chatId, text,
                             keyboardMarkup.getKeyboardMarkup((getButtons("amountofpeoplemenu")), 4));
                 }
                 case CONFIRMBOOKING -> {
-                    sendMessage(chatId, "Бронь стола отправлена нашему сотруднику," +
-                            "   если на это время есть столик, " +
-                            "то вы получите подтверждения что стол был забронирован успешно.");
-                    sendMessage(getCoworkerChatId(), findReservationByChatId(chatId).toString(),
-                            keyboardMarkup.getBookingConfirmationAdminMenu(getButtons("bookingconfirmationadminmenu"),
-                                    reservations.indexOf(findReservationByChatId(chatId))));
+                    confirmBooking(chatId);
+                }
+                case CONFIRMCOMMENT -> {
+                    Reservation reservation = findReservationByCommentExpectation();
+                    if(reservation == null){
+                        return;
+                    }
+                    String comment = reservation.getCoworkerComment().replace("expecting", "");
+                    reservation.setCoworkerComment(comment);
+                    reservation.setConfirmedByCoworker(false);
+                    sendMessage(getCoworkerChatId(), "Бронь отклонена, информация об этом отправилась клиенту");
+                    String text = String.format("Бронь отклонена. Комментарий от сотрудника: %s", reservation.getCoworkerComment());
+                    sendMessage(reservation.getChatId(), text);
+                    expectingCommentFromCoworker.put(getCoworkerChatId(), false);
+                }
+                case DECLINECOMMENT -> {
+                    Reservation reservation = findReservationByCommentExpectation();
+                    if(reservation == null){
+                        return;
+                    }
+                    sendMessage(getCoworkerChatId(), "Введите причину отказа снова");
                 }
                 case CONFIRMPREORDERTIME -> {
                     Order order = createOrder(chatId);
                     String text = String.format("Ваш заказ номер %d. Укажите этот номер при оплате. " +
                             "Для оплаты нужно перевести %d рублей на карту 1234 3456 2345 4556" +
                             " или на телефон 9485749284. Далее нажмите на кнопку 'Подтвердить'," +
-                            " и после этого информация попадет к нашему сотруднику", order.getId(), order.getTotalPrice());
-                    sendMessage(chatId, text, createOneButton("Подтвердить", "PAYMENTCONFIRMEDBYCUSTOMER"));
+                            " и после этого информация попадет к нашему сотруднику.", order.getId(), order.getTotalPrice());
+                    sendMessage(chatId, text, keyboardMarkup.createOneButton("Подтвердить", "PAYMENTCONFIRMEDBYCUSTOMER"));
                     expectingTimeForPreorder.put(chatId, false);
                 }
                 case DECLINEPREORDERTIME -> {
@@ -472,17 +458,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case PAYMENTCONFIRMEDBYCUSTOMER -> {
                     Order order = orderRepository.findTopByChatIdOrderByIdDesc(chatId);
                     if(isOrderSentToCoworker(order)){
-                        sendMessage(chatId, "Информация о заказе уже была отправлена сотруднику");
+                        sendMessage(chatId, "Информация о заказе уже была отправлена сотруднику /start");
                         return;
                     }
                     order.setOrderSentToCoworker(true);
                     sendMessage(chatId, String.format("Благодарим за покупку. Ваш заказ номер %d был принят." +
-                            " Укажите этот номер когда будете забирать заказ.", order.getId()));
+                            " Укажите этот номер когда будете забирать заказ. /start", order.getId()));
                     Long coworkerChatId = getCoworkerChatId();
                     sendMessage(coworkerChatId, String.format("Заказ номер: %d на сумму %d руб. Содержит %s " +
                                     "Нажмите подтвердить что бы подтвердить оплату",
                                     order.getId(), order.getTotalPrice(), order.getItems()),
-                                    createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+order.getId()));
+                                    keyboardMarkup.createOneButton("Подтвердить оплату", "PAYMENTCONFIRMEDBYCOWORKER"+order.getId()));
                 }
                 case SHOWCART -> {
                     if(checkIfCartIsEmpty(chatId)){
@@ -520,6 +506,50 @@ public class TelegramBot extends TelegramLongPollingBot {
             button.setCallbackData("STOPPED"+originalCallbackData);
             buttonRepository.save(button);
         }
+    }
+    private void processNewItemCommand(Long chatId, String messageText){
+        if (validateCoworker(chatId)) {
+            try {
+                createMenuItem(messageText);
+                sendMessage(getCoworkerChatId(), "К какому разделу относиться?",
+                        keyboardMarkup.getKeyboardMarkup(getButtons("adminmenu"), 3));
+            }
+            catch (Exception e) {
+                sendMessage(chatId,"Ошибка! Неправильный формат ввода");
+            }
+        } else sendMessage(chatId, "Не добавлено в корзину, у вас нет доступа к этой функции");
+    }
+    private void processExpectingNameForReservation(Long chatId, String messageText){
+        Reservation reservation = findReservationByChatId(chatId);
+        if (reservation == null) {
+            sendMessage(chatId, "Что то пошло нет так");
+            return;
+        }
+        reservation.setName(messageText);
+        sendMessage(chatId, "Теперь введите время");
+        expectingNameForReservationMap.put(chatId, false);
+        expectingTimeForReservationMap.put(chatId, true);
+    }
+    private void processExpectingTimeForReservation(Long chatId, String messageText){
+        Reservation reservation = findReservationByChatId(chatId);
+        if (reservation == null) {
+            sendMessage(chatId, "Ошибка, что то пошло нет так");
+            return;
+        }
+        reservation.setTime(messageText);
+        sendMessage(chatId, getBookingConfirmationTextByChatId(chatId),
+                keyboardMarkup.getKeyboardMarkup(getButtons("bookingconfirmationmenu"), 2));
+        expectingTimeForReservationMap.put(chatId, false);
+    }
+    private void processExpectingCommentFromCoworker(String messageText){
+        Reservation reservation = findReservationByCommentExpectation();
+        reservation.setCoworkerComment("expecting"+messageText);
+        sendMessage(getCoworkerChatId(), "Подтвердить следующий текст?: "+messageText,
+                keyboardMarkup.createTwoButtons("ДА", "CONFIRMCOMMENT", "НЕТ", "DECLINECOMMENT"));
+    }
+    private void processExpectingTimeForPreorder(Long chatId, String messageText){
+        orderTime.put(chatId, messageText);
+        sendMessage(chatId,"Подтвердить время " + messageText + " ?", keyboardMarkup.getKeyboardMarkup(getButtons("preordertimemenu"), 2));
     }
     private boolean unstopMenuItem(String callbackData) {
         int indexOfCharBeforeItemId = callbackData.indexOf("M");
@@ -564,6 +594,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, getMenuTextForStoppedItems(stoppedItems),
                 keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons("STOPPED")), 3));
     }
+    private void processAdminCommand(Long chatId){
+        if (validateCoworker(chatId)) {
+            sendMessage(chatId, "Меню", keyboardMarkup.getKeyboardMarkup(getButtons("adminmainmenu"), 3));
+        } else {
+            sendMessage(chatId, "Нет доступа к функции");
+        }
+    }
 
     private void startCommandReceived(Long chatId, String name) {
         String answer = String.format("Приветствую, %s", name);
@@ -592,22 +629,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             throw new RuntimeException(e);
         }
     }
-
-    private InlineKeyboardMarkup createOneButton(String text, String callbackDATA){
-        InlineKeyboardButton button = new InlineKeyboardButton();
-        button.setText(text);
-        button.setCallbackData(callbackDATA);
-
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-        rowInLine.add(button);
-        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        rowsInLine.add(rowInLine);
-        keyboardMarkup.setKeyboard(rowsInLine);
-        return keyboardMarkup;
-    }
     private InlineKeyboardMarkup getGoToMenuButton(){
-        return createOneButton("Перейти в меню", "FOODMENU");
+        return keyboardMarkup.createOneButton("Перейти в меню", "FOODMENU");
     }
     private String getItemsName(String itemInfo){
         Pattern p = Pattern.compile("\"([^\"]*)\"");
@@ -630,6 +653,19 @@ public class TelegramBot extends TelegramLongPollingBot {
             return coworker.getChatId();
         }
         return null;
+    }
+    private void confirmBooking(Long chatId){
+        Reservation reservation = findReservationByChatId(chatId);
+        if(reservation.getConfirmedByCoworker()){
+            sendMessage(chatId, "Вы уже отправили информацию о броне стола");
+            return;
+        }
+        sendMessage(chatId, "Бронь стола отправлена нашему сотруднику," +
+                "   если на это время есть столик, " +
+                "то вы получите подтверждения что стол был забронирован успешно.");
+        sendMessage(getCoworkerChatId(), reservation.toString(),
+                keyboardMarkup.getBookingConfirmationAdminMenu(getButtons("bookingconfirmationadminmenu"),
+                        findReservationByChatId(chatId)));
     }
     private String getMenuText(List<MenuItem> items){
         List<Button> buttons = buttonRepository.findAllByBelongsToMenu(items.get(0).getBelongsToMenu());
@@ -772,12 +808,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void createReservationAndAddAmountOfPeople(Long chatId, String amountOfPeople){
+        Reservation reservation = new Reservation();
+        reservation.setChatId(chatId);
+        reservation.setAmountOfPeople(amountOfPeople.substring(6));
+        reservation.setConfirmedByCoworker(false);
+        reservationRepository.save(reservation);
+    }
+
     private boolean isAnyCoworkerActive(){
         coworkerRepository.findTopByIsActiveTrue();
-        if(coworkerRepository.findTopByIsActiveTrue()!= null){
-            return true;
-        }
-        return false;
+        return coworkerRepository.findTopByIsActiveTrue() != null;
     }
 
     private List<Button> getAdminItemButtons (String callbackDataWithId){
@@ -814,6 +855,24 @@ public class TelegramBot extends TelegramLongPollingBot {
     private MenuItem findItemById(String callbackData){
         return menuItemRepository.findById(Integer.valueOf(callbackData.substring(4))).orElse(null);
     }
+    private void confirmReservation(Long chatId, String callbackData){
+        try {
+            Reservation reservation = findReservationById(chatId, callbackData);
+            if(reservation.getConfirmedByCoworker() == null){
+                reservation.setConfirmedByCoworker(true);
+                String confirmationText = String.format("Бронь стола на имя %s подтверждена. Время %s. Кол-во человек %s",
+                        reservation.getName(), reservation.getTime(), reservation.getAmountOfPeople());
+                sendMessage(getCoworkerChatId(), confirmationText);
+                sendMessage(reservation.getChatId(), confirmationText);
+            }
+            else{
+                sendMessage(getCoworkerChatId(), "Ошибка: вы уже изменили статус брони");
+            }
+        }
+        catch (Exception e){
+            sendMessage(getCoworkerChatId(), "Нет брони");
+        }
+    }
     private void addToCart(Long chatId, String callbackData){
         String menuItemId = callbackData.substring(9);
         MenuItem item = findItemById(menuItemId);
@@ -832,9 +891,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         String itemsIdinCart = itemIdInCart.substring(0,index);
         int additionId = Integer.parseInt(itemIdInCart.substring(index+1));
         Cart itemInCart = cartRepository.findTopByChatIdAndItemsIdOrderByIdDesc(chatId, itemsIdinCart);
+        if(itemInCart == null){
+            sendMessage(chatId, "Ошибка! Добавка уже добавлена к блюду," +
+                    " если хотите добавить второй раз, перейдите в меню и добавьте еще раз", getGoToMenuButton());
+            return;
+        }
         MenuItem addition = menuItemRepository.findById(additionId).orElse(null);
-
-
         if (addition == null) {
             sendMessage(chatId, "Что то пошло не так, не получилось добавить добавку");
             return;
@@ -842,6 +904,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         itemInCart.setPrice(itemInCart.getPrice()+addition.getPrice());
         itemInCart.setItemsName(itemInCart.getItemsName() + "+" + addition.getName());
         itemInCart.setItemsId(itemInCart.getItemsId()+"+"+addition.getId());
+        sendMessage(chatId,"Добавлено успешно", getGoToMenuButton());
     }
     private void addDrinkAdditionToMenuItemInCart(Long chatId, String callbackData) {
         int itemsId = Integer.parseInt(callbackData.substring(13));
@@ -992,31 +1055,31 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private Reservation findReservationByChatId(Long chatId){
-        for(Reservation reservation : reservations){
-            if(Objects.equals(reservation.getChatId(), chatId)){
-                return reservation;
-            }
+        Reservation reservation = reservationRepository.findTopByChatIdOrderByIdDesc(chatId);
+        if(reservation == null){
+            sendMessage(chatId, "Ошибка! Бронь не была найдена");
+            return null;
         }
-        return null;
+        return reservation;
     }
-    private Reservation findReservationById(String callbackData){
-        int id = Integer.parseInt(callbackData.substring(21));
-        return reservations.get(id);
+    private Reservation findReservationById(Long chatId, String callbackData){
+        int id = Integer.parseInt(callbackData.substring(callbackData.lastIndexOf("D")+1));
+        Reservation reservation = reservationRepository.findById(id).orElse(null);
+        if(reservation == null){
+            sendMessage(chatId, "Что то пошло не так. Бронь не была найдена в базе");
+            return null;
+        }
+        return reservation;
     }
     private Reservation findReservationByCommentExpectation(){
-        for (Reservation reservation : reservations){
-            if(reservation.getCoworkerComment().equals("expecting")){
-                return reservation;
-            }
+        Reservation reservation = reservationRepository.findReservationByCoworkerCommentContaining("expecting");
+        if(reservation == null){
+            sendMessage(getCoworkerChatId(), "Нет брони которая ожидает причину отказа");
+            return null;
         }
-        return null;
+        return reservation;
     }
-    private void deleteReservation(Reservation reservation){
-        reservations.remove(reservation);
-    }
-    private void removeAllReserVationsByChatId(Long chatId){
-        reservations.removeIf(reservation -> Objects.equals(reservation.getChatId(), chatId));
-    }
+
     private String getMenuBelonging(String callbackData){
         int itemId = Integer.parseInt(callbackData.substring(13));
         MenuItem item = menuItemRepository.findById(itemId).orElse(null);
@@ -1025,6 +1088,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             return "";
         }
         return item.getBelongsToMenu();
+    }
+    private void deleteCoworker(Long chatId){
+        coworkerRepository.delete(coworkerRepository.findCoworkerByChatId(chatId));
+        sendMessage(chatId, "Вы были удалены как админ");
     }
 }
 

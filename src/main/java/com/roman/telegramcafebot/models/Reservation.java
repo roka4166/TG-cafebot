@@ -1,25 +1,57 @@
 package com.roman.telegramcafebot.models;
 
 import jakarta.persistence.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+@Entity
 @Component
+@Table(name = "reservation")
 public class Reservation {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+    @Column(name = "chat_id")
     private Long chatId;
+    @Column(name = "amount_of_people")
     private String amountOfPeople;
+    @Column(name = "name")
     private String name;
+    @Column(name = "time")
     private String time;
+    @Column(name = "coworker_comment")
     private String coworkerComment;
+    @Column(name = "confirmed_by_coworker")
+    private Boolean confirmedByCoworker;
 
     public Reservation() {
+    }
+
+    public Reservation(Integer id, Long chatId, String amountOfPeople, String name, String time, String coworkerComment, Boolean confirmedByCoworker) {
+        this.id = id;
+        this.chatId = chatId;
+        this.amountOfPeople = amountOfPeople;
+        this.name = name;
+        this.time = time;
+        this.coworkerComment = coworkerComment;
+        this.confirmedByCoworker = confirmedByCoworker;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public Long getChatId() {
         return chatId;
     }
 
-    public void setChatId(Long customerChatId) {
-        this.chatId = customerChatId;
+    public void setChatId(Long chatId) {
+        this.chatId = chatId;
     }
 
     public String getAmountOfPeople() {
@@ -52,6 +84,14 @@ public class Reservation {
 
     public void setCoworkerComment(String coworkerComment) {
         this.coworkerComment = coworkerComment;
+    }
+
+    public Boolean getConfirmedByCoworker() {
+        return confirmedByCoworker;
+    }
+
+    public void setConfirmedByCoworker(Boolean confirmedByCoworker) {
+        this.confirmedByCoworker = confirmedByCoworker;
     }
 
     @Override

@@ -2,26 +2,17 @@ package com.roman.telegramcafebot.utils;
 
 import com.roman.telegramcafebot.models.Button;
 import com.roman.telegramcafebot.models.Cart;
-import com.roman.telegramcafebot.models.MenuItem;
+import com.roman.telegramcafebot.models.Reservation;
 import com.roman.telegramcafebot.repositories.ButtonRepository;
-import com.roman.telegramcafebot.repositories.MenuItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
 import java.util.List;
 @Component
 public class KeyboardMarkup {
-
-    private ButtonRepository buttonRepository;
-    @Autowired
-    public KeyboardMarkup(ButtonRepository buttonRepository) {
-        this.buttonRepository = buttonRepository;
-    }
 
     private InlineKeyboardMarkup createInlineKeyboardMarkup(List<Button> buttons, int rowsPerLine){
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
@@ -94,7 +85,7 @@ public class KeyboardMarkup {
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
-        int additionItemId = Integer.valueOf(callbackData.substring(12));
+        int additionItemId = Integer.parseInt(callbackData.substring(12));
 
         int batchSize = 4;
         int totalButtons = itemsInCart.size();
@@ -122,15 +113,45 @@ public class KeyboardMarkup {
         keyboardMarkup.setKeyboard(rowsInLine);
         return keyboardMarkup;
     }
-    public InlineKeyboardMarkup getBookingConfirmationAdminMenu(List<Button> buttons, int reservationId){
+    public InlineKeyboardMarkup getBookingConfirmationAdminMenu(List<Button> buttons, Reservation reservation){
         for(Button button : buttons){
-            if (button.getCallbackData().startsWith("RESERVATION_CONFIRMED")){
-                button.setCallbackData("RESERVATION_CONFIRMED"+reservationId);
+            if (button.getCallbackData().startsWith("CONFIRMRESERVATION")){
+                button.setCallbackData("CONFIRMRESERVATION"+reservation.getId());
             }
-            else if (button.getCallbackData().startsWith("RESERVATION_DECLINED")){
-                button.setCallbackData("RESERVATION_DECLINED"+" " + reservationId);
+            else if (button.getCallbackData().startsWith("DECLINERESERVATION")){
+                button.setCallbackData("DECLINERESERVATION" + reservation.getId());
             }
         }
         return createInlineKeyboardMarkup(buttons, 2);
+    }
+    public InlineKeyboardMarkup createOneButton(String text, String callbackData){
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callbackData);
+
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        rowInLine.add(button);
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        rowsInLine.add(rowInLine);
+        keyboardMarkup.setKeyboard(rowsInLine);
+        return keyboardMarkup;
+    }
+    public InlineKeyboardMarkup createTwoButtons(String text, String callbackData, String text2, String callbackData2){
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callbackData);
+        button2.setText(text2);
+        button2.setCallbackData(callbackData2);
+
+        rowInLine.add(button);
+        rowInLine.add(button2);
+        rowsInLine.add(rowInLine);
+        keyboardMarkup.setKeyboard(rowsInLine);
+        return keyboardMarkup;
     }
 }

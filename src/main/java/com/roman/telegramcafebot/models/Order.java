@@ -1,6 +1,7 @@
 package com.roman.telegramcafebot.models;
 
 import jakarta.persistence.*;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -23,17 +24,22 @@ public class Order {
     private String time;
     @Column(name = "sent")
     private Boolean orderSentToCoworker;
+    @Column(name = "order_confirmed")
+    private Boolean orderConfirmed;
 
     public Order() {
     }
 
-    public Order(Integer id, Long chatId, Integer totalPrice, String items, String time, Boolean orderSentToCoworker) {
+    public Order(Integer id, Long chatId, Integer totalPrice,
+                 String items, String time, Boolean orderSentToCoworker,
+                 Boolean orderConfirmed) {
         this.id = id;
         this.chatId = chatId;
         this.totalPrice = totalPrice;
         this.items = items;
         this.time = time;
         this.orderSentToCoworker = orderSentToCoworker;
+        this.orderConfirmed = orderConfirmed;
     }
 
     public String getTime() {
@@ -82,6 +88,14 @@ public class Order {
 
     public void setOrderSentToCoworker(Boolean orderSentToCoworker) {
         this.orderSentToCoworker = orderSentToCoworker;
+    }
+
+    public Boolean getOrderConfirmed() {
+        return orderConfirmed;
+    }
+
+    public void setOrderConfirmed(Boolean orderConfirmed) {
+        this.orderConfirmed = orderConfirmed;
     }
 
     @Override
