@@ -154,4 +154,22 @@ public class KeyboardMarkup {
         keyboardMarkup.setKeyboard(rowsInLine);
         return keyboardMarkup;
     }
+    public InlineKeyboardMarkup getShowReservationsButtons(Long chatId, List<Reservation> reservations){
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        for (int i = 0; i < reservations.size(); i++) {
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(String.valueOf(i+1));
+            button.setCallbackData("DELETERESERVATION"+reservations.get(i).getId());
+            rowInLine.add(button);
+        }
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText("В главное меню");
+        button.setCallbackData("MAINMENU");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        keyboardMarkup.setKeyboard(rowsInLine);
+        return keyboardMarkup;
+    }
 }

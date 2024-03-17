@@ -2,12 +2,13 @@ package com.roman.telegramcafebot.utils;
 
 public enum MessageCommand {
     COMMAND_START("/start"),
-    COMMAND_ADMIN ("/admin"),
-    COMMAND_NEW_ITEM ("/newitem"),
-    COMMAND_PASSWORD ("/password"),
-    COMMAND_ADMIN_ON ("/adminon"),
-    COMMAND_ADMIN_OFF ("/adminoff"),
-    COMMAND_DELETEME("/deleteme");
+    COMMAND_ADMIN ("/админ"),
+    COMMAND_NEW_ITEM ("/добавить"),
+    COMMAND_PASSWORD ("/пароль"),
+    COMMAND_ADMIN_ON ("/включить"),
+    COMMAND_ADMIN_OFF ("/выключить"),
+    COMMAND_DELETEME("/удалить"),
+    COMMAND_NEWSECTION("/новыйраздел");
 
     private final String messageCommand;
 

@@ -1,8 +1,9 @@
 package com.roman.telegramcafebot.models;
 
 import jakarta.persistence.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Component
@@ -24,11 +25,18 @@ public class Reservation {
     private String coworkerComment;
     @Column(name = "confirmed_by_coworker")
     private Boolean confirmedByCoworker;
+    @Column(name = "sent_to_coworker")
+    private Boolean sentToCoworker;
+    @Column(name = "expiration_date")
+    private LocalDateTime expirationDate;
 
     public Reservation() {
     }
 
-    public Reservation(Integer id, Long chatId, String amountOfPeople, String name, String time, String coworkerComment, Boolean confirmedByCoworker) {
+    public Reservation(Integer id, Long chatId, String amountOfPeople,
+                       String name, String time, String coworkerComment,
+                       Boolean confirmedByCoworker, Boolean sentToCoworker,
+                       LocalDateTime expirationDate) {
         this.id = id;
         this.chatId = chatId;
         this.amountOfPeople = amountOfPeople;
@@ -36,6 +44,8 @@ public class Reservation {
         this.time = time;
         this.coworkerComment = coworkerComment;
         this.confirmedByCoworker = confirmedByCoworker;
+        this.sentToCoworker = sentToCoworker;
+        this.expirationDate = expirationDate;
     }
 
     public Integer getId() {
@@ -92,6 +102,22 @@ public class Reservation {
 
     public void setConfirmedByCoworker(Boolean confirmedByCoworker) {
         this.confirmedByCoworker = confirmedByCoworker;
+    }
+
+    public Boolean getSentToCoworker() {
+        return sentToCoworker;
+    }
+
+    public void setSentToCoworker(Boolean sentToCoworker) {
+        this.sentToCoworker = sentToCoworker;
+    }
+
+    public LocalDateTime getExpirationDate() {
+        return expirationDate;
+    }
+
+    public void setExpirationDate(LocalDateTime expirationDate) {
+        this.expirationDate = expirationDate;
     }
 
     @Override

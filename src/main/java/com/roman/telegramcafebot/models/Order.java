@@ -26,13 +26,15 @@ public class Order {
     private Boolean orderSentToCoworker;
     @Column(name = "order_confirmed")
     private Boolean orderConfirmed;
+    @Column(name = "takeaway")
+    private Boolean takeaway;
 
     public Order() {
     }
 
     public Order(Integer id, Long chatId, Integer totalPrice,
                  String items, String time, Boolean orderSentToCoworker,
-                 Boolean orderConfirmed) {
+                 Boolean orderConfirmed, Boolean takeaway) {
         this.id = id;
         this.chatId = chatId;
         this.totalPrice = totalPrice;
@@ -40,6 +42,7 @@ public class Order {
         this.time = time;
         this.orderSentToCoworker = orderSentToCoworker;
         this.orderConfirmed = orderConfirmed;
+        this.takeaway = takeaway;
     }
 
     public String getTime() {
@@ -96,6 +99,14 @@ public class Order {
 
     public void setOrderConfirmed(Boolean orderConfirmed) {
         this.orderConfirmed = orderConfirmed;
+    }
+
+    public Boolean getTakeaway() {
+        return takeaway;
+    }
+
+    public void setTakeaway(Boolean takeaway) {
+        this.takeaway = takeaway;
     }
 
     @Override

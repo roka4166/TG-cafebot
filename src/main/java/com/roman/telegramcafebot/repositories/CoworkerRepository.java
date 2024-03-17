@@ -10,4 +10,5 @@ public interface CoworkerRepository extends JpaRepository<Coworker, Integer> {
    Coworker findCoworkerByChatId(Long chatId);
 
    Coworker findTopByIsActiveTrue();
+   List<Coworker> findAllByIsActiveTrue();
 }
