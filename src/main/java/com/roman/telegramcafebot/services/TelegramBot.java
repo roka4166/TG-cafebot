@@ -273,7 +273,6 @@ public class TelegramBot extends TelegramLongPollingBot {
            confirmReservation(chatId, callbackData);
         }
         else if(callbackData.startsWith(CallbackDataCommand.RESERVATION_DECLINED.getCallbackDataCommand())){
-            synchronized (expectingCommentFromCoworker) {
                 if (!expectingCommentFromCoworker.containsValue(true)) {
                     Reservation reservation = findReservationById(chatId, callbackData);
                     if(reservation.getConfirmedByCoworker() == null){
@@ -285,7 +284,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(getCoworkerChatId(), "Ошибка вы уже изменили статус брони");
                     }
                 }
-            }
         }
         else if(callbackData.startsWith(CallbackDataCommand.DECLINE_RESERVATION.getCallbackDataCommand())){
             String reservationId = callbackData.substring(callbackData.lastIndexOf("N")+1);
@@ -351,8 +349,28 @@ public class TelegramBot extends TelegramLongPollingBot {
                           keyboardMarkup.getKeyboardMarkup(getButtons("drinkmenu"), 2));
                 return;
             }
+            if(validateCoworker(chatId)){
+                sendMessage(chatId, getMenuText(chatId ,getItemsByMenuBelonging(typeOfMenu+"menu")),
+                        keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getAdminMenuItemButtons(typeOfMenu+"menu")), 3));
+                return;
+            }
+            if(typeOfMenu.equals("addition")){
+                sendMessage(chatId,getAdditionMenuText(getItemsByMenuBelonging(typeOfMenu+"menu")),
+                        keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons(typeOfMenu+"menu")), 3));
+                return;
+            }
             sendMessage(chatId, getMenuText(chatId ,getItemsByMenuBelonging(typeOfMenu+"menu")),
                     keyboardMarkup.getKeyboardMarkup(sortButtonsByName(getButtons(typeOfMenu+"menu")), 3));
+        }
+        else if (callbackData.startsWith(CallbackDataCommand.REMOVESECTION.getCallbackDataCommand())) {
+            String belongsToMenu = callbackData.replace("REMOVESECTION", "");
+            sendMessage(chatId, "ВНИМАНИЕ! Вы собираетесь удалить раздел. С ним будут удалены все товары в нем",
+                    keyboardMarkup.createTwoButtons("Удалить раздел", "CONFIRMREMOVESECTION" + belongsToMenu, "Отмена", "ADMINMAINMENU"));
+        }
+        else if (callbackData.startsWith(CallbackDataCommand.CONFIRMREMOVESECTION.getCallbackDataCommand())) {
+            String belongsToMenu = callbackData.replace("CONFIRMREMOVESECTION", "");
+            removeSection(chatId, belongsToMenu);
+            sendMessage(chatId, "Раздел удален" ,keyboardMarkup.createOneButton("В меню", "ADMINMAINMENU"));
         }
 
         if (callbackDataCommand != null) {
@@ -459,6 +477,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                         showAllStoppedItems(chatId);
             }
         }
+    }
+
+    private void removeSection(long chatId, String belongsToMenu) {
+        String name = belongsToMenu.replace("menu", "");
+        buttonRepository.deleteAllByName(name);
+        buttonRepository.deleteAllByBelongsToMenu(belongsToMenu);
+        menuItemRepository.deleteAllByBelongsToMenu(belongsToMenu);
     }
 
     private void stopMenuItem(String callbackData) {
@@ -596,6 +621,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(menuItem == null){
             sendMessage(chatId, "Товара больше нет в наличии");
             return;
+        }
+        String description = menuItem.getDescription();
+        if(description == null || description.isBlank()){
+            sendMessage(chatId, "Описание новара отсутствует",
+                    keyboardMarkup.createOneButton("Назад", "ITEM"+menuItemId));
+            return;
+
         }
         sendMessage(chatId, menuItem.getDescription(),
                 keyboardMarkup.createOneButton("Назад", "ITEM"+menuItemId));
@@ -758,7 +790,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 keyboardMarkup.createTwoButtons("ДА", "CONFIRMDESCRIPTION", "НЕТ", "DECLINEDESCRIPTION"));
     }
     private void confirmDescription(Long chatId){
-        sendMessage(chatId, "Товар добавлен в корзину", getGoToMenuButton());
+        sendMessage(chatId, "Товар добавлен в меню", getGoToMenuButton());
         expectingDescriptionFromCoworker.put(chatId, false);
     }
     private void declineDescription(Long chatId){
@@ -770,6 +802,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, "Текущее описание: "+ item.getDescription());
         sendMessage(chatId, "Введите новое описание");
         expectingEditDescription.put(chatId, menuItemId);
+    }
+    private Button getRemoveSectionButton(String belongsToMenu){
+        Button button = new Button();
+        button.setName("Удалить раздел");
+        button.setCallbackData("REMOVESECTION"+belongsToMenu);
+        return button;
     }
     @Scheduled(fixedRate = 1800000)
     void cleanCartIfExpired(){
@@ -872,6 +910,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         adminButtons.addAll(buttonRepository.findAllByBelongsToMenu("foodmenu"));
         adminButtons.addAll(buttonRepository.findAllByBelongsToMenu("drinksadditionmenu"));
         adminButtons.add(buttonRepository.findButtonByCallbackData("ADMINMAINMENU"));
+        return adminButtons;
+    }
+    private List<Button> getAdminMenuItemButtons(String belongsToMenu){
+        List<Button> buttons = buttonRepository.findAllByBelongsToMenu(belongsToMenu);
+        List<Button> adminButtons = new ArrayList<>(buttons);
+        adminButtons.add(getRemoveSectionButton(belongsToMenu));
         return adminButtons;
     }
     private List<Button> getConfirmationButtons (String callbackData){
@@ -1139,7 +1183,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttonToAdd.setBelongsToMenu(menuItem.getBelongsToMenu());
         buttonToAdd.setCallbackData("ITEM"+(menuItem.getId()));
         buttonRepository.save(buttonToAdd);
-        sendMessage(chatId, "Теперь добавьте описание товара");
+        sendMessage(chatId, "Теперь добавьте описание товара, если не хотите добавлять описание, то просто кликните на кноку ниже",
+                keyboardMarkup.createOneButton("Обратно в меню", "FOODMENU"));
         expectingDescriptionFromCoworker.put(chatId, true);
 
     }

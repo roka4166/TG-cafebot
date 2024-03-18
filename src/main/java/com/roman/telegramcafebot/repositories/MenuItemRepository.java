@@ -10,13 +10,11 @@ import java.util.List;
 public interface MenuItemRepository extends JpaRepository<MenuItem, Integer> {
     List<MenuItem> findAllByBelongsToMenuAndIsStoppedFalse(String belongsToMenu);
 
-    MenuItem findMenuItemByName(String name);
-
-    MenuItem findMenuItemByBelongsToMenu(String belongsToMenu);
-
     MenuItem findTopByBelongsToMenuAndChatIdOrderByIdDesc(String belongsToMenu, Long chatId);
 
     MenuItem findTopByChatIdOrderByIdDesc(Long chatId);
 
     List<MenuItem> findAllByIsStoppedTrue();
+
+    void deleteAllByBelongsToMenu(String belongsToMenu);
 }

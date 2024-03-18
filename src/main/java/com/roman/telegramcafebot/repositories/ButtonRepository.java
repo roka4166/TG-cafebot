@@ -12,11 +12,8 @@ public interface ButtonRepository extends JpaRepository<Button, Integer> {
 
     List<Button> findAllByBelongsToMenuStartingWith(String startingWith);
 
-    public Button findButtonByNameStartingWith(String name);
-
-    List<Button> findAllByCallbackDataStartingWith(String startingWith);
-
-    List<Button> findAllByIdIsGreaterThan(Integer id);
-
     Button findButtonByCallbackData(String callbackData);
+    void deleteAllByBelongsToMenu(String belongsToMenu);
+
+    void deleteAllByName(String name);
 }

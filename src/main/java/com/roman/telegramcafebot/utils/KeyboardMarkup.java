@@ -18,13 +18,12 @@ public class KeyboardMarkup {
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
 
-        int batchSize = rowsPerLine;
         int totalButtons = buttons.size();
-        int numberOfIterations = (int) Math.ceil((double) totalButtons / batchSize);
+        int numberOfIterations = (int) Math.ceil((double) totalButtons / rowsPerLine);
 
         for (int j = 0; j < numberOfIterations; j++) {
             List<InlineKeyboardButton> row = new ArrayList<>();
-            for (int i = j * batchSize; i < Math.min((j + 1) * batchSize, totalButtons); i++) {
+            for (int i = j * rowsPerLine; i < Math.min((j + 1) * rowsPerLine, totalButtons); i++) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
                 button.setText(buttons.get(i).getName());
                 button.setCallbackData(buttons.get(i).getCallbackData());
